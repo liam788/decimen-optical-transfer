@@ -29,3 +29,9 @@ flutter_optical_transfer/macos/Pods/
 
 # Keep .gitkeep files
 !.gitkeep
+
+# Explicitly track prebuilt release binaries in released/
+!released/*.apk
+!released/*.exe
+!released/*.zip
+!released/**
