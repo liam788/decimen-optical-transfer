@@ -120,16 +120,9 @@ class _SendScreenState extends State<SendScreen> {
                       child: SizedBox(
                         width: qrSquareSize,
                         height: qrSquareSize,
-                        child: FittedBox(
-                          fit: BoxFit.contain,
-                          child: SizedBox(
-                            width: qrSquareSize,
-                            height: qrSquareSize,
-                            child: MultiQrGridWidget(
-                              frameChunks: _currentFrameChunks,
-                              settings: _settings,
-                            ),
-                          ),
+                        child: MultiQrGridWidget(
+                          frameChunks: _currentFrameChunks,
+                          settings: _settings,
                         ),
                       ),
                     );

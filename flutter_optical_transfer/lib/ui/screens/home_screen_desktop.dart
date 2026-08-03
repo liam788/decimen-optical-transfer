@@ -3,9 +3,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'send_screen.dart';
+import 'receive_screen_desktop.dart';
 
-/// Desktop home screen — Send-only UI for Windows/macOS/Linux.
-/// Camera receive requires mobile app (Android/iOS) or web app.
+/// Desktop home screen — Send & Receive UI for Windows/macOS/Linux.
 class HomeScreenDesktop extends StatelessWidget {
   const HomeScreenDesktop({super.key});
 
@@ -32,6 +32,15 @@ class HomeScreenDesktop extends StatelessWidget {
     }
   }
 
+  void _openReceiveScreen(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ReceiveScreenDesktop(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,15 +51,15 @@ class HomeScreenDesktop extends StatelessWidget {
         elevation: 0,
       ),
       body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(40.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // App icon / hero
               Container(
-                width: 100,
-                height: 100,
+                width: 90,
+                height: 90,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
@@ -59,9 +68,9 @@ class HomeScreenDesktop extends StatelessWidget {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: const Icon(Icons.wifi_tethering, size: 52, color: Colors.white),
+                child: const Icon(Icons.wifi_tethering, size: 48, color: Colors.white),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
               const Text(
                 'Decimen Optical Transfer',
                 style: TextStyle(
@@ -77,47 +86,76 @@ class HomeScreenDesktop extends StatelessWidget {
                 style: TextStyle(color: Colors.white54, fontSize: 15),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
 
-              // Send button
-              SizedBox(
-                width: 320,
-                height: 56,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyanAccent.shade700,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+              // Action buttons row (Send & Receive)
+              Wrap(
+                spacing: 20,
+                runSpacing: 20,
+                alignment: WrapAlignment.center,
+                children: [
+                  // Send button card
+                  SizedBox(
+                    width: 300,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.cyanAccent.shade700,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () => _selectFileAndSend(context),
+                      icon: const Icon(Icons.upload_file, color: Colors.white, size: 24),
+                      label: const Text(
+                        'Send File via Light',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
-                  onPressed: () => _selectFileAndSend(context),
-                  icon: const Icon(Icons.upload_file, color: Colors.white, size: 26),
-                  label: const Text(
-                    'Select File & Send via Light',
-                    style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+
+                  // Receive button card
+                  SizedBox(
+                    width: 300,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.tealAccent.shade700,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () => _openReceiveScreen(context),
+                      icon: const Icon(Icons.qr_code_scanner, color: Colors.white, size: 24),
+                      label: const Text(
+                        'Receive File on Windows',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 36),
 
-              // Info about receive
+              // Info card
               Container(
-                width: 320,
+                width: 480,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.white12),
                 ),
-                child: Column(
+                child: Row(
                   children: const [
-                    Icon(Icons.info_outline, color: Colors.cyanAccent, size: 22),
-                    SizedBox(height: 8),
-                    Text(
-                      'To receive files, use the Android/iOS mobile app or open the web app (decimen-receiver.html) on a device with a camera.',
-                      style: TextStyle(color: Colors.white60, fontSize: 13),
-                      textAlign: TextAlign.center,
+                    Icon(Icons.info_outline, color: Colors.cyanAccent, size: 24),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'To send to phone: Click "Send File via Light" & scan with phone.\nTo receive from phone: Click "Receive File on Windows" & point phone screen at webcam.',
+                        style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                      ),
                     ),
                   ],
                 ),
@@ -129,3 +167,4 @@ class HomeScreenDesktop extends StatelessWidget {
     );
   }
 }
+

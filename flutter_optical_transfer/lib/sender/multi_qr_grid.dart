@@ -45,10 +45,9 @@ class MultiQrGridWidget extends StatelessWidget {
     }
 
     final dim = settings.qrGridDimension;
-    final totalCells = dim * dim;
 
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -60,30 +59,34 @@ class MultiQrGridWidget extends StatelessWidget {
           )
         ],
       ),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: dim,
-          crossAxisSpacing: 6,
-          mainAxisSpacing: 6,
-        ),
-        itemCount: totalCells,
-        itemBuilder: (context, index) {
-          final chunk = frameChunks[index % frameChunks.length];
-          // Base64 encode for QR rasterization
-          final qrData = String.fromCharCodes(chunk);
+      child: Column(
+        children: List.generate(dim, (rowIndex) {
+          return Expanded(
+            child: Row(
+              children: List.generate(dim, (colIndex) {
+                final cellIndex = rowIndex * dim + colIndex;
+                final chunk = frameChunks[cellIndex % frameChunks.length];
+                final qrData = String.fromCharCodes(chunk);
 
-          return QrImageView(
-            data: qrData,
-            version: QrVersions.auto,
-            errorCorrectionLevel: QrErrorCorrectLevel.L,
-            backgroundColor: Colors.white,
-            padding: const EdgeInsets.all(2),
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: QrImageView(
+                      data: qrData,
+                      version: QrVersions.auto,
+                      errorCorrectionLevel: QrErrorCorrectLevel.L,
+                      backgroundColor: Colors.white,
+                      padding: const EdgeInsets.all(2),
+                    ),
+                  ),
+                );
+              }),
+            ),
           );
-        },
+        }),
       ),
     );
   }
 }
+
 
