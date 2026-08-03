@@ -1,4 +1,4 @@
-name: Build and Release Binaries
+name: Publish GitHub Release
 
 on:
   push:
@@ -9,46 +9,25 @@ on:
 permissions:
   contents: write
 
-env:
-  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
-
 jobs:
-  release-standalone-web:
-    name: Build & Publish Standalone Releases
+  publish-release:
+    name: Publish Release Assets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install dependencies & build
-        run: |
-          cd decimen-optical-transfer
-          npm install
-          npm run build:standalone
-
-      - name: Prepare Released Artifacts
-        run: |
-          mkdir -p released_assets
-          cp decimen-optical-transfer/dist-standalone/send/index.html released_assets/decimen-sender.html || cp released/decimen-sender.html released_assets/decimen-sender.html
-          cp decimen-optical-transfer/dist-standalone/receive/index.html released_assets/decimen-receiver.html || cp released/decimen-receiver.html released_assets/decimen-receiver.html
-
-      - name: Create GitHub Release Page
-        uses: softprops/action-gh-release@v1
+      - name: Publish Release to GitHub
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           body: |
             ## Decimen Optical Transfer — Universal Release
             - Zero-network optical file transfer via light and screen streams.
-            - Includes single-file standalone web apps (`decimen-sender.html` and `decimen-receiver.html`).
+            - Includes prebuilt single-file standalone web apps (`decimen-sender.html` and `decimen-receiver.html`).
             - Cross-platform Flutter source included in `flutter_optical_transfer/`.
           files: |
-            released_assets/decimen-sender.html
-            released_assets/decimen-receiver.html
+            released/decimen-sender.html
+            released/decimen-receiver.html
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
