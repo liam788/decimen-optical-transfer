@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -66,7 +67,9 @@ class MultiQrGridWidget extends StatelessWidget {
               children: List.generate(dim, (colIndex) {
                 final cellIndex = rowIndex * dim + colIndex;
                 final chunk = frameChunks[cellIndex % frameChunks.length];
-                final qrData = String.fromCharCodes(chunk);
+                
+                // Base64 encode binary frame chunk into clean ASCII for QR generator
+                final qrData = base64Encode(chunk);
 
                 return Expanded(
                   child: Padding(
@@ -77,6 +80,14 @@ class MultiQrGridWidget extends StatelessWidget {
                       errorCorrectionLevel: QrErrorCorrectLevel.L,
                       backgroundColor: Colors.white,
                       padding: const EdgeInsets.all(2),
+                      errorStateBuilder: (cxt, err) {
+                        return const Center(
+                          child: Text(
+                            "QR Error",
+                            style: TextStyle(color: Colors.red, fontSize: 10),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 );
@@ -88,5 +99,6 @@ class MultiQrGridWidget extends StatelessWidget {
     );
   }
 }
+
 
 

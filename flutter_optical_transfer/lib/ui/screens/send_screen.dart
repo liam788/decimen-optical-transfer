@@ -24,45 +24,58 @@ class SendScreen extends StatefulWidget {
 }
 
 class _SendScreenState extends State<SendScreen> {
-  late FountainEncoder _encoder;
-  late PackedOpticalFile _packedFile;
+  FountainEncoder? _encoder;
+  PackedOpticalFile? _packedFile;
   late AdaptiveSettings _settings;
   Timer? _streamTimer;
   List<Uint8List> _currentFrameChunks = [];
   int _frameIndex = 0;
   bool _initializedSettings = false;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _packedFile = packFile(widget.fileName, widget.fileType, widget.fileBytes);
-    _encoder = FountainEncoder(_packedFile.container, targetBlockLen: 300);
-    _settings = AdaptiveSettings(targetFps: 30, blockLen: 300, qrGridDimension: 1);
-    _startStreaming();
+    try {
+      _packedFile = packFile(widget.fileName, widget.fileType, widget.fileBytes);
+      _encoder = FountainEncoder(_packedFile!.container, targetBlockLen: 300);
+      _settings = AdaptiveSettings(targetFps: 30, blockLen: 300, qrGridDimension: 1);
+      _startStreaming();
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_initializedSettings) {
+    if (!_initializedSettings && _errorMessage == null) {
       _settings = AdaptiveSettings.autoTune(context);
       _initializedSettings = true;
     }
   }
 
   void _startStreaming() {
+    if (_encoder == null) return;
     _streamTimer?.cancel();
     final interval = (1000 / _settings.targetFps).round();
     _streamTimer = Timer.periodic(Duration(milliseconds: interval), (_) {
-      final chunks = <Uint8List>[];
-      final count = _settings.qrGridDimension * _settings.qrGridDimension;
-      for (int i = 0; i < count; i++) {
-        chunks.add(_encoder.nextFrame().toBytes());
+      if (_encoder == null) return;
+      try {
+        final chunks = <Uint8List>[];
+        final count = _settings.qrGridDimension * _settings.qrGridDimension;
+        for (int i = 0; i < count; i++) {
+          chunks.add(_encoder!.nextFrame().toBytes());
+        }
+        if (mounted) {
+          setState(() {
+            _currentFrameChunks = chunks;
+            _frameIndex++;
+          });
+        }
+      } catch (e) {
+        // Frame generation error handling
       }
-      setState(() {
-        _currentFrameChunks = chunks;
-        _frameIndex++;
-      });
     });
   }
 
@@ -74,6 +87,39 @@ class _SendScreenState extends State<SendScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        appBar: AppBar(
+          title: const Text("Error Preparing File"),
+          backgroundColor: const Color(0xFF1E293B),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
+                const SizedBox(height: 16),
+                Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text("Go Back & Select Another File"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
@@ -97,7 +143,7 @@ class _SendScreenState extends State<SendScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Size: ${(_packedFile.transmittedSize / 1024).toStringAsFixed(1)} KB",
+                    "Size: ${((_packedFile?.transmittedSize ?? 0) / 1024).toStringAsFixed(1)} KB",
                     style: const TextStyle(color: Colors.white70),
                   ),
                   Text(
@@ -206,4 +252,5 @@ class _SendScreenState extends State<SendScreen> {
     );
   }
 }
+
 
