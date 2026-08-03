@@ -22,23 +22,3 @@ Transfers files between devices (PC, Phone, Mac) with zero network connection, z
 5. **Feature E — Alignment HUD & Goodput Meter:** Real-time FPS, KB/s goodput meter, and solved block progress bar.
 6. **Feature F — High-Density Color Matrix:** Optional 4-color visual channel codec yielding 2x speed boost.
 7. **Android APK Sharing:** Extract and transfer installed Android apps (`.apk`) directly between phones over light.
-
----
-
-## 📦 Releases & GitHub Deployment
-
-### Deploying to GitHub:
-```bash
-git init
-git add .
-git commit -m "Initial commit of Universal Optical Transfer"
-git remote add origin https://github.com/YOUR_USERNAME/optical-transfer.git
-git push -u origin main
-```
-
-### Tagging a Release (Triggers Automated Binary Build):
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-This automatically compiles `.apk`, `.exe`, `.app`, and standalone web releases and attaches them directly to your GitHub Release page!
