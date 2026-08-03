@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   release-standalone-web:
     name: Build & Publish Standalone Releases
@@ -19,9 +23,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
-      - name: Build Web Standalone Single-File Apps
+      - name: Install dependencies & build
         run: |
           cd decimen-optical-transfer
           npm install
