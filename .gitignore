@@ -1,0 +1,18 @@
+# Build & dependency directories
+node_modules/
+dist/
+dist-standalone/
+.dart_tool/
+.pub-cache/
+build/
+*.DS_Store
+*.apk
+*.exe
+
+# IDE / Editor config
+.vscode/
+.idea/
+*.iml
+
+# Environment
+.env.local
