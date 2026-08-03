@@ -16,3 +16,16 @@ build/
 
 # Environment
 .env.local
+
+# Flutter platform — generated files (do NOT commit these)
+flutter_optical_transfer/android/local.properties
+flutter_optical_transfer/ios/Flutter/Generated.xcconfig
+flutter_optical_transfer/ios/Flutter/flutter_export_environment.sh
+flutter_optical_transfer/macos/Flutter/Flutter-Generated.xcconfig
+flutter_optical_transfer/macos/Flutter/flutter_export_environment.sh
+flutter_optical_transfer/macos/Flutter/ephemeral/
+flutter_optical_transfer/ios/Pods/
+flutter_optical_transfer/macos/Pods/
+
+# Keep .gitkeep files
+!.gitkeep

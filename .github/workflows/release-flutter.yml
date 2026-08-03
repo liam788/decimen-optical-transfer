@@ -10,7 +10,10 @@ permissions:
   contents: write
 
 jobs:
-  publish-standalone-web:
+  # ─────────────────────────────────────────────
+  # JOB 1: Publish pre-built standalone web HTML
+  # ─────────────────────────────────────────────
+  publish-web:
     name: Publish Web Releases
     runs-on: ubuntu-latest
     steps:
@@ -23,15 +26,27 @@ jobs:
           name: Release ${{ github.ref_name }}
           body: |
             ## Decimen Optical Transfer — Universal Release
-            - Zero-network optical file transfer via light and screen streams.
-            - Includes prebuilt single-file standalone web apps (`decimen-sender.html` and `decimen-receiver.html`).
-            - Cross-platform Flutter source included in `flutter_optical_transfer/`.
+
+            Zero-network optical file transfer via fountain-coded light streams.
+
+            ### Downloads
+            | Platform | File | Notes |
+            |---|---|---|
+            | 🌐 Web (Sender) | `decimen-sender.html` | Open in any browser, no install |
+            | 🌐 Web (Receiver) | `decimen-receiver.html` | Open in any browser, no install |
+            | 🤖 Android | `app-release.apk` | Sideload on Android 5.0+ |
+            | 🪟 Windows | `decimen-windows.zip` | Extract and run `.exe` |
+            | 🍎 iOS | `decimen-ios.zip` | Unsigned — install via AltStore/Sideloadly |
+            | 🖥️ macOS | `decimen-macos.zip` | Unsigned — right-click → Open to bypass Gatekeeper |
           files: |
             released/decimen-sender.html
             released/decimen-receiver.html
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ─────────────────────────────────────────────
+  # JOB 2: Build Android APK
+  # ─────────────────────────────────────────────
   build-android:
     name: Build Android APK
     runs-on: ubuntu-latest
@@ -49,14 +64,23 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
+
+      - name: Write local.properties
+        working-directory: flutter_optical_transfer/android
+        run: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > local.properties
+          echo "flutter.buildMode=release" >> local.properties
+          echo "flutter.versionName=1.0.0" >> local.properties
+          echo "flutter.versionCode=1" >> local.properties
 
       - name: Build APK
+        working-directory: flutter_optical_transfer
         run: |
-          cd flutter_optical_transfer
           flutter pub get
           flutter build apk --release
 
-      - name: Upload Android APK Asset
+      - name: Upload Android APK
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -64,6 +88,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # ─────────────────────────────────────────────
+  # JOB 3: Build Windows EXE
+  # ─────────────────────────────────────────────
   build-windows:
     name: Build Windows EXE
     runs-on: windows-latest
@@ -75,19 +102,113 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
 
       - name: Build Windows Executable
+        working-directory: flutter_optical_transfer
         run: |
-          cd flutter_optical_transfer
           flutter config --enable-windows-desktop
           flutter pub get
           flutter build windows --release
-          Compress-Archive -Path build/windows/runner/Release/* -DestinationPath ../flutter_optical_transfer_windows.zip
 
-      - name: Upload Windows Software Asset
+      - name: Package Windows ZIP
+        working-directory: flutter_optical_transfer
+        shell: pwsh
+        run: |
+          # Flutter 3.x outputs to x64/runner/Release, older to runner/Release
+          $newPath = "build/windows/x64/runner/Release"
+          $oldPath = "build/windows/runner/Release"
+          if (Test-Path $newPath) {
+            Compress-Archive -Path "$newPath/*" -DestinationPath "decimen-windows.zip"
+          } elseif (Test-Path $oldPath) {
+            Compress-Archive -Path "$oldPath/*" -DestinationPath "decimen-windows.zip"
+          } else {
+            Write-Error "Could not find Windows build output"
+            exit 1
+          }
+
+      - name: Upload Windows ZIP
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: flutter_optical_transfer_windows.zip
+          files: flutter_optical_transfer/decimen-windows.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────
+  # JOB 4: Build iOS (unsigned)
+  # ─────────────────────────────────────────────
+  build-ios:
+    name: Build iOS IPA (Unsigned)
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install CocoaPods
+        run: sudo gem install cocoapods
+
+      - name: Build iOS (no code sign)
+        working-directory: flutter_optical_transfer
+        run: |
+          flutter pub get
+          flutter build ios --release --no-codesign
+
+      - name: Package iOS app as ZIP
+        working-directory: flutter_optical_transfer
+        run: |
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r decimen-ios.zip Payload/
+          rm -rf Payload
+
+      - name: Upload iOS ZIP
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: flutter_optical_transfer/decimen-ios.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────
+  # JOB 5: Build macOS (unsigned)
+  # ─────────────────────────────────────────────
+  build-macos:
+    name: Build macOS App (Unsigned)
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Build macOS
+        working-directory: flutter_optical_transfer
+        run: |
+          flutter config --enable-macos-desktop
+          flutter pub get
+          flutter build macos --release
+
+      - name: Package macOS app as ZIP
+        working-directory: flutter_optical_transfer
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r $GITHUB_WORKSPACE/flutter_optical_transfer/decimen-macos.zip *.app
+
+      - name: Upload macOS ZIP
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: flutter_optical_transfer/decimen-macos.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

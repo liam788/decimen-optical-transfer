@@ -1,0 +1,15 @@
+// Application-level settings for the Runner target.
+//
+// This may be replaced with a target-specific config file in the future.
+
+// The application's name. By default this is also the CFBundleDisplayName.
+PRODUCT_NAME = Optical Transfer
+
+// The application's bundle identifier
+PRODUCT_BUNDLE_IDENTIFIER = com.decimen.opticaltransfer
+
+// The copyright displayed in application information
+PRODUCT_COPYRIGHT = Copyright © 2024 Decimen. All rights reserved.
+
+// The minimum deployment version
+MACOSX_DEPLOYMENT_TARGET = 10.14
