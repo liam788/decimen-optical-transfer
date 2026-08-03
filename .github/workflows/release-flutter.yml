@@ -104,18 +104,35 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Build Windows Executable
+      - name: Swap to Windows-compatible pubspec
+        working-directory: flutter_optical_transfer
+        shell: pwsh
+        run: |
+          # Replace pubspec with Windows-only version (removes mobile_scanner,
+          # permission_handler, share_plus which have no Windows native support)
+          Copy-Item pubspec.windows.yaml pubspec.yaml -Force
+
+      - name: Swap to Windows-compatible main entry
+        working-directory: flutter_optical_transfer
+        shell: pwsh
+        run: |
+          # Use desktop main that imports no camera/permission packages
+          Copy-Item lib/main_windows.dart lib/main.dart -Force
+
+      - name: Enable Windows desktop and get dependencies
         working-directory: flutter_optical_transfer
         run: |
           flutter config --enable-windows-desktop
           flutter pub get
-          flutter build windows --release
+
+      - name: Build Windows Executable
+        working-directory: flutter_optical_transfer
+        run: flutter build windows --release --target=lib/main.dart
 
       - name: Package Windows ZIP
         working-directory: flutter_optical_transfer
         shell: pwsh
         run: |
-          # Flutter 3.x outputs to x64/runner/Release, older to runner/Release
           $newPath = "build/windows/x64/runner/Release"
           $oldPath = "build/windows/runner/Release"
           if (Test-Path $newPath) {

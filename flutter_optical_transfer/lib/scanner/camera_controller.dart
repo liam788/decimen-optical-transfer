@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 /// Feature C: Optics & Camera Hardware Controller
+/// On Windows this is a no-op stub — camera scanning requires mobile/web.
 class OpticalCameraController {
   final MobileScannerController controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.unrestricted,
