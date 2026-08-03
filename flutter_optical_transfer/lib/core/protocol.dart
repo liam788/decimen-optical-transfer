@@ -4,7 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:archive/archive.dart';
 
 const int headerLen = 20;
-const int maxFileBytes = 64 * 1024 * 1024; // 64 MB max
+const int maxFileBytes = 1024 * 1024 * 1024; // 1 GB max (1024 MB)
 const int fileHeaderLen = 49;
 const int magic0 = 0xD1;
 const int magic1 = 0x0C;
@@ -74,7 +74,7 @@ String safeFileName(String name) {
 PackedOpticalFile packFile(String name, String type, Uint8List bytes) {
   if (bytes.isEmpty) throw Exception('Choose a non-empty file.');
   if (bytes.length > maxFileBytes) {
-    throw Exception('Files are limited to 64 MB.');
+    throw Exception('Files are limited to 1 GB.');
   }
 
   final nameBytes = utf8.encode(safeFileName(name));

@@ -6,8 +6,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/fountain.dart';
 import '../../core/protocol.dart';
+import '../../core/camera_tuner.dart';
 import '../../scanner/camera_controller.dart';
 import '../widgets/hud_overlay.dart';
+import '../widgets/camera_tuning_dialog.dart';
 
 class ReceiveScreen extends StatefulWidget {
   const ReceiveScreen({super.key});
@@ -160,6 +162,17 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
             right: 16,
             child: Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.tune, color: Colors.cyanAccent),
+                  tooltip: 'Auto-Detect & Windows Settings',
+                  onPressed: () {
+                    final profile = CameraCapabilityProfile.analyze(
+                      fps: _currentFps,
+                      torchAvailable: true,
+                    );
+                    CameraTuningDialog.show(context, profile);
+                  },
+                ),
                 IconButton(
                   icon: Icon(
                     _cameraController.isTorchOn ? Icons.flash_on : Icons.flash_off,

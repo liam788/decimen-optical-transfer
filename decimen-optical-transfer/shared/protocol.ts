@@ -13,7 +13,7 @@
 //  16  u32  payloadFnv  FNV-1a of the whole container — verified on completion
 
 export const HEADER_LEN = 20;
-export const MAX_FILE_BYTES = 64 * 1024 * 1024;
+export const MAX_FILE_BYTES = 1024 * 1024 * 1024;
 /**
  * One place for the number, so the picker label, the rejection message and
  * packFile()'s own error can't drift apart. The HTML pulls it in as the

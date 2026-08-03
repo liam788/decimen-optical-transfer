@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../platform/apk_extractor.dart';
+import '../../core/camera_tuner.dart';
+import '../widgets/camera_tuning_dialog.dart';
 import 'send_screen.dart';
 import 'receive_screen.dart';
 
@@ -120,8 +122,28 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: Colors.cyanAccent),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  final profile = CameraCapabilityProfile.analyze(
+                    fps: 30.0,
+                    torchAvailable: true,
+                  );
+                  CameraTuningDialog.show(context, profile);
+                },
+                icon: const Icon(Icons.speed, color: Colors.cyanAccent),
+                label: const Text(
+                  "Camera Diagnostics & Suggested Windows Settings",
+                  style: TextStyle(color: Colors.cyanAccent, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ),
 
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
 
               // APK Extractor Section (Android)
               if (Platform.isAndroid) ...[
