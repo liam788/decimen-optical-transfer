@@ -18,13 +18,29 @@ class MultiQrGridWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (frameChunks.isEmpty) {
-      return const Center(child: Text("Preparing stream..."));
+      return const Center(
+        child: Text("Preparing stream...", style: TextStyle(color: Colors.white70)),
+      );
     }
 
     if (settings.useColorCodec) {
-      return CustomPaint(
-        size: const Size(320, 320),
-        painter: ColorMatrixCodec.getPainter(frameChunks.first, 32),
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 12,
+              spreadRadius: 2,
+            )
+          ],
+        ),
+        child: CustomPaint(
+          size: const Size(320, 320),
+          painter: ColorMatrixCodec.getPainter(frameChunks.first, 32),
+        ),
       );
     }
 
@@ -32,14 +48,14 @@ class MultiQrGridWidget extends StatelessWidget {
     final totalCells = dim * dim;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 12,
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 16,
             spreadRadius: 2,
           )
         ],
@@ -49,8 +65,8 @@ class MultiQrGridWidget extends StatelessWidget {
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: dim,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
+          crossAxisSpacing: 6,
+          mainAxisSpacing: 6,
         ),
         itemCount: totalCells,
         itemBuilder: (context, index) {
@@ -63,10 +79,11 @@ class MultiQrGridWidget extends StatelessWidget {
             version: QrVersions.auto,
             errorCorrectionLevel: QrErrorCorrectLevel.L,
             backgroundColor: Colors.white,
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.all(2),
           );
         },
       ),
     );
   }
 }
+

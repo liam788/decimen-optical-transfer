@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../core/fountain.dart';
@@ -29,6 +30,7 @@ class _SendScreenState extends State<SendScreen> {
   Timer? _streamTimer;
   List<Uint8List> _currentFrameChunks = [];
   int _frameIndex = 0;
+  bool _initializedSettings = false;
 
   @override
   void initState() {
@@ -42,7 +44,10 @@ class _SendScreenState extends State<SendScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _settings = AdaptiveSettings.autoTune(context);
+    if (!_initializedSettings) {
+      _settings = AdaptiveSettings.autoTune(context);
+      _initializedSettings = true;
+    }
   }
 
   void _startStreaming() {
@@ -78,7 +83,7 @@ class _SendScreenState extends State<SendScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Stream Info Card
             Container(
@@ -103,17 +108,35 @@ class _SendScreenState extends State<SendScreen> {
               ),
             ),
 
-            const Expanded(child: SizedBox()),
-
-            // Multi-QR Code Visual Stream Area
-            Center(
-              child: MultiQrGridWidget(
-                frameChunks: _currentFrameChunks,
-                settings: _settings,
+            // Multi-QR Code Visual Stream Area — Perfectly bounded to fit screen
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxAvailableSide = math.min(constraints.maxWidth, constraints.maxHeight);
+                    final qrSquareSize = math.max(100.0, maxAvailableSide);
+                    return Center(
+                      child: SizedBox(
+                        width: qrSquareSize,
+                        height: qrSquareSize,
+                        child: FittedBox(
+                          fit: BoxFit.contain,
+                          child: SizedBox(
+                            width: qrSquareSize,
+                            height: qrSquareSize,
+                            child: MultiQrGridWidget(
+                              frameChunks: _currentFrameChunks,
+                              settings: _settings,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-
-            const Expanded(child: SizedBox()),
 
             // Controls Panel (Tuning A, B, F)
             Container(
@@ -130,9 +153,9 @@ class _SendScreenState extends State<SendScreen> {
                         dropdownColor: const Color(0xFF1E293B),
                         style: const TextStyle(color: Colors.white),
                         items: const [
-                          DropdownMenuItem(value: 1, child: Text("1x1 QR")),
-                          DropdownMenuItem(value: 2, child: Text("2x2 Grid")),
-                          DropdownMenuItem(value: 3, child: Text("3x3 Grid")),
+                          DropdownMenuItem(value: 1, child: Text("1x1 (1 QR)")),
+                          DropdownMenuItem(value: 2, child: Text("2x2 Grid (4 QR)")),
+                          DropdownMenuItem(value: 3, child: Text("3x3 Grid (9 QR)")),
                         ],
                         onChanged: (val) {
                           if (val != null) {
@@ -190,3 +213,4 @@ class _SendScreenState extends State<SendScreen> {
     );
   }
 }
+
