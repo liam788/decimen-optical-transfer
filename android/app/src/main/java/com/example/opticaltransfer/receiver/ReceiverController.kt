@@ -2,8 +2,7 @@ package com.example.opticaltransfer.receiver
 
 import android.content.Context
 import com.example.opticaltransfer.core.codec.QrMatrixEncoder
-import com.example.opticaltransfer.core.fountain.DecoderProgress
-import com.example.opticaltransfer.core.fountain.EncodedDrop
+import com.example.opticaltransfer.core.fountain.DecoderStatus
 import com.example.opticaltransfer.core.fountain.FountainDecoder
 import com.example.opticaltransfer.platform.ApkInstaller
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,12 +31,10 @@ class ReceiverController {
 
     private val fountainDecoder = FountainDecoder()
     private var startTimeMs: Long = 0L
-    private var totalBytesDecoded: Long = 0L
 
     fun startScanning() {
         fountainDecoder.reset()
         startTimeMs = System.currentTimeMillis()
-        totalBytesDecoded = 0L
         _state.value = ReceiverState(isScanning = true)
     }
 
@@ -46,51 +43,47 @@ class ReceiverController {
     }
 
     @Synchronized
-    fun processScannedQrText(context: Context, qrText: String) {
+    fun processScannedQrBytes(context: Context, rawBytes: ByteArray) {
         if (!_state.value.isScanning || _state.value.isCompleted) return
 
-        val binaryBytes = QrMatrixEncoder.decodeTextToDrop(qrText) ?: return
-        val drop = EncodedDrop.fromBinary(binaryBytes) ?: return
-
-        val progress: DecoderProgress = fountainDecoder.processDrop(drop)
-        totalBytesDecoded = progress.bytesReceived
+        val status: DecoderStatus = fountainDecoder.addFrameBytes(rawBytes) ?: return
 
         val elapsedTimeSec = ((System.currentTimeMillis() - startTimeMs).coerceAtLeast(100)) / 1000f
-        val goodputKbps = (totalBytesDecoded / 1024f) / elapsedTimeSec
-        val percent = if (progress.totalBlocks > 0) {
-            (progress.solvedBlocks.toFloat() / progress.totalBlocks.toFloat()) * 100f
-        } else {
-            0f
-        }
-
-        val isApk = progress.fileName.lowercase().endsWith(".apk")
+        val bytesSoFar = (status.solvedCount * fountainDecoder.blockLen).toLong()
+        val goodputKbps = (bytesSoFar / 1024f) / elapsedTimeSec
 
         _state.value = _state.value.copy(
-            totalBlocks = progress.totalBlocks,
-            solvedBlocks = progress.solvedBlocks,
-            dropsReceived = progress.totalDropsReceived,
-            progressPercent = percent,
-            goodputKbps = goodputKbps,
-            fileName = progress.fileName,
-            fileSize = progress.fileSize,
-            isApk = isApk
+            totalBlocks = status.k,
+            solvedBlocks = status.solvedCount,
+            dropsReceived = status.receivedCount,
+            progressPercent = status.progressPercent,
+            goodputKbps = goodputKbps
         )
 
-        if (progress.isComplete && !_state.value.isCompleted) {
-            val assembledBytes = fountainDecoder.assembleFile()
-            if (assembledBytes != null) {
-                val savedFile = ApkInstaller.saveToDownloads(context, progress.fileName, assembledBytes)
+        if (status.isComplete && !_state.value.isCompleted) {
+            val opticalFile = fountainDecoder.assembleFile()
+            if (opticalFile != null) {
+                val savedFile = ApkInstaller.saveToDownloads(context, opticalFile.name, opticalFile.bytes)
+                val isApk = opticalFile.name.lowercase().endsWith(".apk")
                 _state.value = _state.value.copy(
+                    fileName = opticalFile.name,
+                    fileSize = opticalFile.bytes.size.toLong(),
+                    isApk = isApk,
                     isCompleted = true,
                     isScanning = false,
                     savedFile = savedFile,
-                    error = if (savedFile == null) "Failed to save file to downloads" else null
+                    error = if (savedFile == null) "Failed to save file to Downloads" else null
                 )
             } else {
                 _state.value = _state.value.copy(
-                    error = "File assembly / SHA-256 checksum verification failed"
+                    error = "File assembly or SHA-256 integrity check failed."
                 )
             }
         }
+    }
+
+    fun processScannedQrText(context: Context, qrText: String) {
+        val bytes = QrMatrixEncoder.decodeLatin1TextToBytes(qrText)
+        processScannedQrBytes(context, bytes)
     }
 }

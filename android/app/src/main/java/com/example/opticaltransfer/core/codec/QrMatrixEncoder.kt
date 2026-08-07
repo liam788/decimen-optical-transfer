@@ -2,7 +2,10 @@ package com.example.opticaltransfer.core.codec
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.util.Base64
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 
 enum class MatrixGridMode(val rows: Int, val cols: Int) {
     SINGLE_1X1(1, 1),
@@ -24,20 +27,41 @@ data class QrFrameConfig(
 object QrMatrixEncoder {
 
     /**
-     * Converts a binary drop into a Base64 string payload with preamble
+     * Encodes a binary frame drop into ISO-8859-1 string suitable for ZXing QR transmission
      */
-    fun encodeDropToText(binaryDrop: ByteArray): String {
-        return "OPT1:" + Base64.encodeToString(binaryDrop, Base64.NO_WRAP)
+    fun encodeDropToLatin1Text(binaryDrop: ByteArray): String {
+        return String(binaryDrop, Charsets.ISO_8859_1)
     }
 
     /**
-     * Decodes QR text payload back into binary drop bytes
+     * Decodes QR text payload back into raw binary drop bytes
      */
-    fun decodeTextToDrop(qrText: String): ByteArray? {
-        if (!qrText.startsWith("OPT1:")) return null
-        val b64 = qrText.substring(5)
+    fun decodeLatin1TextToBytes(qrText: String): ByteArray {
+        return qrText.toByteArray(Charsets.ISO_8859_1)
+    }
+
+    /**
+     * Generates a high-contrast QR Code bitmap from binary frame drop
+     */
+    fun generateQrBitmap(binaryDrop: ByteArray, size: Int = 300): Bitmap? {
         return try {
-            Base64.decode(b64, Base64.NO_WRAP)
+            val text = encodeDropToLatin1Text(binaryDrop)
+            val hints = mapOf<EncodeHintType, Any>(
+                EncodeHintType.CHARACTER_SET to "ISO-8859-1",
+                EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.L,
+                EncodeHintType.MARGIN to 1
+            )
+            val writer = QRCodeWriter()
+            val bitMatrix = writer.encode(text, BarcodeFormat.QR_CODE, size, size, hints)
+            val width = bitMatrix.width
+            val height = bitMatrix.height
+            val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+            for (x in 0 until width) {
+                for (y in 0 until height) {
+                    bmp.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
+                }
+            }
+            bmp
         } catch (_: Exception) {
             null
         }
@@ -70,34 +94,5 @@ object QrMatrixEncoder {
             }
         }
         return composite
-    }
-
-    /**
-     * Encodes 2 separate drops into a single 4-color RGB bitmap (Red channel = drop 1, Blue channel = drop 2)
-     */
-    fun createColor4ChannelBitmap(monoBitmap1: Bitmap, monoBitmap2: Bitmap): Bitmap {
-        val width = monoBitmap1.width
-        val height = monoBitmap1.height
-        val result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-
-        val pixels1 = IntArray(width * height)
-        val pixels2 = IntArray(width * height)
-        val resultPixels = IntArray(width * height)
-
-        monoBitmap1.getPixels(pixels1, 0, width, 0, 0, width, height)
-        monoBitmap2.getPixels(pixels2, 0, width, 0, 0, width, height)
-
-        for (i in pixels1.indices) {
-            val isDark1 = (Color.red(pixels1[i]) < 128)
-            val isDark2 = (Color.red(pixels2[i]) < 128)
-
-            val r = if (isDark1) 255 else 0
-            val b = if (isDark2) 255 else 0
-            val g = 0
-            resultPixels[i] = Color.rgb(r, g, b)
-        }
-
-        result.setPixels(resultPixels, 0, width, 0, 0, width, height)
-        return result
     }
 }

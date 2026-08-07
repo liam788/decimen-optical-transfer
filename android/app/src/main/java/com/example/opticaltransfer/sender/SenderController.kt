@@ -1,10 +1,9 @@
 package com.example.opticaltransfer.sender
 
-import com.example.opticaltransfer.core.codec.MatrixGridMode
 import com.example.opticaltransfer.core.codec.QrFrameConfig
 import com.example.opticaltransfer.core.codec.QrMatrixEncoder
-import com.example.opticaltransfer.core.fountain.EncodedDrop
 import com.example.opticaltransfer.core.fountain.FountainEncoder
+import com.example.opticaltransfer.core.protocol.Protocol
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,10 +13,12 @@ data class SenderState(
     val isStreaming: Boolean = false,
     val fileName: String = "",
     val fileSize: Long = 0L,
+    val transmittedSize: Long = 0L,
     val totalBlocks: Int = 0,
     val dropsSent: Int = 0,
     val currentDropText: String = "",
     val currentGridDropTexts: List<String> = emptyList(),
+    val currentFrameBytesList: List<ByteArray> = emptyList(),
     val config: QrFrameConfig = QrFrameConfig()
 )
 
@@ -28,19 +29,22 @@ class SenderController {
     private var encoder: FountainEncoder? = null
     private var streamingJob: Job? = null
 
-    fun prepareFile(fileName: String, fileBytes: ByteArray, blockSize: Int = 256) {
+    fun prepareFile(fileName: String, fileBytes: ByteArray, mimeType: String = "application/octet-stream", targetBlockLen: Int = 400) {
         stopStreaming()
-        val fEncoder = FountainEncoder(fileBytes, fileName, blockSize)
+        val packed = Protocol.packFile(fileName, mimeType, fileBytes)
+        val fEncoder = FountainEncoder(packed.container, targetBlockLen = targetBlockLen)
         encoder = fEncoder
 
         _state.value = _state.value.copy(
             isStreaming = false,
             fileName = fileName,
-            fileSize = fEncoder.fileSize,
-            totalBlocks = fEncoder.totalBlocks,
+            fileSize = fileBytes.size.toLong(),
+            transmittedSize = packed.transmittedSize.toLong(),
+            totalBlocks = fEncoder.k,
             dropsSent = 0,
             currentDropText = "",
-            currentGridDropTexts = emptyList()
+            currentGridDropTexts = emptyList(),
+            currentFrameBytesList = emptyList()
         )
     }
 
@@ -61,21 +65,21 @@ class SenderController {
             val delayMs = (1000 / config.targetFps.coerceIn(1, 60)).toLong()
 
             while (isActive && _state.value.isStreaming) {
-                val drops = mutableListOf<EncodedDrop>()
+                val frameBytesList = mutableListOf<ByteArray>()
                 val dropTexts = mutableListOf<String>()
 
                 for (i in 0 until gridCells) {
-                    val drop = fEncoder.nextDrop()
-                    drops.add(drop)
-                    val text = QrMatrixEncoder.encodeDropToText(drop.toBinary())
-                    dropTexts.add(text)
+                    val frameBytes = fEncoder.nextFrameBytes()
+                    frameBytesList.add(frameBytes)
+                    dropTexts.add(QrMatrixEncoder.encodeDropToLatin1Text(frameBytes))
                     sentCount++
                 }
 
                 _state.value = _state.value.copy(
                     dropsSent = sentCount,
                     currentDropText = dropTexts.firstOrNull() ?: "",
-                    currentGridDropTexts = dropTexts
+                    currentGridDropTexts = dropTexts,
+                    currentFrameBytesList = frameBytesList
                 )
 
                 delay(delayMs)

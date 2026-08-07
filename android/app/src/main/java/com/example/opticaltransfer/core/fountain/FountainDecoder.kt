@@ -1,157 +1,181 @@
 package com.example.opticaltransfer.core.fountain
 
-import java.security.MessageDigest
+import com.example.opticaltransfer.core.protocol.FrameHeader
+import com.example.opticaltransfer.core.protocol.OpticalFile
+import com.example.opticaltransfer.core.protocol.Protocol
 import kotlin.math.min
-import kotlin.random.Random
 
-data class DecoderProgress(
-    val totalBlocks: Int,
-    val solvedBlocks: Int,
-    val totalDropsReceived: Int,
-    val bytesReceived: Long,
-    val fileSize: Long,
+data class DecoderStatus(
+    val k: Int,
+    val solvedCount: Int,
+    val receivedCount: Int,
+    val progressPercent: Float,
     val isComplete: Boolean,
-    val fileName: String
+    val streamIdentity: String
+)
+
+private data class PendingFrame(
+    val indices: MutableSet<Int>,
+    val payload: ByteArray
 )
 
 class FountainDecoder {
-    private var totalBlocks: Int = 0
-    private var fileSize: Long = 0L
-    private var fileName: String = ""
-    private var expectedChecksumPrefix: String = ""
-    private var blockSize: Int = 0
+    var sessionId: Int? = null
+        private set
+    var k: Int = 0
+        private set
+    var blockLen: Int = 0
+        private set
+    var totalLen: Int = 0
+        private set
+    var payloadFnv: Long = 0L
+        private set
+    private var cdf: DoubleArray? = null
 
-    private val solvedBlocksMap = mutableMapOf<Int, ByteArray>()
-    private val equationsList = mutableListOf<Equation>()
-    private var totalDropsReceived = 0
-
-    private data class Equation(
-        val dropSeq: Int,
-        var indices: HashSet<Int>,
-        val payload: ByteArray
-    )
+    private val solvedBlocks = mutableMapOf<Int, ByteArray>()
+    private val byBlockMap = mutableMapOf<Int, MutableSet<PendingFrame>>()
+    private val seenSeqs = mutableSetOf<Int>()
+    private var receivedFramesCount = 0
 
     @Synchronized
-    fun processDrop(drop: EncodedDrop): DecoderProgress {
-        totalDropsReceived++
-
-        if (totalBlocks == 0) {
-            totalBlocks = drop.totalBlocks
-            fileSize = drop.fileSize
-            fileName = drop.fileName
-            expectedChecksumPrefix = drop.fileChecksum
-            blockSize = drop.payload.size
-        }
-
-        val rng = Random(drop.seed)
-        val degree = FountainEncoder.selectDegree(rng, totalBlocks)
-        val indices = FountainEncoder.selectBlockIndices(rng, totalBlocks, degree).toHashSet()
-
-        // Simplify drop payload using already solved blocks
-        val currentPayload = drop.payload.copyOf()
-        val remainingIndices = HashSet<Int>()
-
-        for (idx in indices) {
-            if (solvedBlocksMap.containsKey(idx)) {
-                val solved = solvedBlocksMap[idx]!!
-                for (b in 0 until blockSize) {
-                    currentPayload[b] = (currentPayload[b].toInt() xor solved[b].toInt()).toByte()
-                }
-            } else {
-                remainingIndices.add(idx)
-            }
-        }
-
-        if (remainingIndices.isNotEmpty()) {
-            val eq = Equation(drop.dropIndex, remainingIndices, currentPayload)
-            equationsList.add(eq)
-            solveEquations()
-        }
-
-        val solvedCount = solvedBlocksMap.size
-        val isDone = solvedCount >= totalBlocks
-
-        return DecoderProgress(
-            totalBlocks = totalBlocks,
-            solvedBlocks = solvedCount,
-            totalDropsReceived = totalDropsReceived,
-            bytesReceived = (solvedCount * blockSize).toLong().coerceAtMost(fileSize),
-            fileSize = fileSize,
-            isComplete = isDone,
-            fileName = fileName
-        )
+    fun reset() {
+        sessionId = null
+        k = 0
+        blockLen = 0
+        totalLen = 0
+        payloadFnv = 0L
+        cdf = null
+        solvedBlocks.clear()
+        byBlockMap.clear()
+        seenSeqs.clear()
+        receivedFramesCount = 0
     }
 
-    private fun solveEquations() {
-        var changed = true
-        while (changed) {
-            changed = false
-            val iterator = equationsList.iterator()
+    @Synchronized
+    fun addFrameBytes(bytes: ByteArray): DecoderStatus? {
+        val parsed = Protocol.parseFrame(bytes) ?: return null
+        val header = parsed.first
+        val blockData = parsed.second
 
-            val newlySolved = mutableListOf<Pair<Int, ByteArray>>()
+        // Reset if new stream session or mismatched identity
+        if (sessionId != null && (header.sessionId != sessionId || header.k != k || header.totalLen != totalLen || header.payloadFnv != payloadFnv)) {
+            reset()
+        }
 
-            while (iterator.hasNext()) {
-                val eq = iterator.next()
+        if (sessionId == null) {
+            sessionId = header.sessionId
+            k = header.k
+            blockLen = header.blockLen
+            totalLen = header.totalLen
+            payloadFnv = header.payloadFnv
+            cdf = FountainMath.solitonCdf(k)
+        }
 
-                // Remove solved indices
-                eq.indices.removeAll { solvedBlocksMap.containsKey(it) }
+        if (seenSeqs.contains(header.seq)) {
+            return getStatus()
+        }
+        seenSeqs.add(header.seq)
+        receivedFramesCount++
 
-                if (eq.indices.isEmpty()) {
-                    iterator.remove()
-                } else if (eq.indices.size == 1) {
-                    val solvedIdx = eq.indices.first()
-                    newlySolved.add(solvedIdx to eq.payload.copyOf())
-                    iterator.remove()
-                    changed = true
+        if (isComplete()) return getStatus()
+
+        val indices = FountainMath.frameIndices(k, cdf!!, sessionId!!, header.seq).toMutableSet()
+        val currentPayload = blockData.copyOf()
+
+        val iterator = indices.iterator()
+        while (iterator.hasNext()) {
+            val b = iterator.next()
+            val solved = solvedBlocks[b]
+            if (solved != null) {
+                for (i in 0 until blockLen) {
+                    currentPayload[i] = (currentPayload[i].toInt() xor solved[i].toInt()).toByte()
                 }
+                iterator.remove()
             }
+        }
 
-            for ((idx, block) in newlySolved) {
-                solvedBlocksMap[idx] = block
-                // Perform back-substitution on remaining equations
-                for (eq in equationsList) {
-                    if (eq.indices.contains(idx)) {
-                        eq.indices.remove(idx)
-                        for (b in 0 until blockSize) {
-                            eq.payload[b] = (eq.payload[b].toInt() xor block[b].toInt()).toByte()
-                        }
+        if (indices.isEmpty()) return getStatus()
+
+        if (indices.size == 1) {
+            resolveBlock(indices.first(), currentPayload)
+        } else {
+            val pf = PendingFrame(indices, currentPayload)
+            for (b in indices) {
+                val set = byBlockMap.getOrPut(b) { mutableSetOf() }
+                set.add(pf)
+            }
+        }
+
+        return getStatus()
+    }
+
+    private fun resolveBlock(b0: Int, w0: ByteArray) {
+        val queue = ArrayDeque<Pair<Int, ByteArray>>()
+        queue.addLast(Pair(b0, w0))
+
+        while (queue.isNotEmpty()) {
+            val (b, w) = queue.removeFirst()
+            if (solvedBlocks.containsKey(b)) continue
+
+            solvedBlocks[b] = w
+
+            val waiting = byBlockMap.remove(b) ?: continue
+            for (pf in waiting) {
+                for (i in 0 until blockLen) {
+                    pf.payload[i] = (pf.payload[i].toInt() xor w[i].toInt()).toByte()
+                }
+                pf.indices.remove(b)
+
+                if (pf.indices.size == 1) {
+                    val r = pf.indices.first()
+                    byBlockMap[r]?.remove(pf)
+                    if (!solvedBlocks.containsKey(r)) {
+                        queue.addLast(Pair(r, pf.payload))
                     }
                 }
             }
         }
     }
 
-    fun isComplete(): Boolean = totalBlocks > 0 && solvedBlocksMap.size >= totalBlocks
+    fun isComplete(): Boolean = k > 0 && solvedBlocks.size >= k
 
-    fun assembleFile(): ByteArray? {
+    fun getStatus(): DecoderStatus {
+        val count = solvedBlocks.size
+        val percent = if (k > 0) (count.toFloat() / k.toFloat()) * 100f else 0f
+        val identity = if (sessionId != null) "$sessionId:$k:$blockLen:$totalLen:$payloadFnv" else ""
+
+        return DecoderStatus(
+            k = k,
+            solvedCount = count,
+            receivedCount = receivedFramesCount,
+            progressPercent = percent,
+            isComplete = isComplete(),
+            streamIdentity = identity
+        )
+    }
+
+    fun assembleFile(): OpticalFile? {
         if (!isComplete()) return null
 
-        val result = ByteArray(fileSize.toInt())
-        for (i in 0 until totalBlocks) {
-            val block = solvedBlocksMap[i] ?: return null
-            val start = i * blockSize
-            val length = min(blockSize, result.size - start)
-            System.arraycopy(block, 0, result, start, length)
+        val container = ByteArray(totalLen)
+        for (b in 0 until k) {
+            val block = solvedBlocks[b] ?: return null
+            val start = b * blockLen
+            val len = min(blockLen, totalLen - start)
+            if (len > 0) {
+                System.arraycopy(block, 0, container, start, len)
+            }
         }
 
-        // Verify SHA-256 checksum prefix
-        val actualChecksum = FountainEncoder.computeSha256(result)
-        if (!actualChecksum.startsWith(expectedChecksumPrefix)) {
-            // Checksum failed
+        // Verify FNV-1a hash
+        if (Protocol.fnv1a(container) != payloadFnv) {
             return null
         }
 
-        return result
-    }
-
-    fun reset() {
-        totalBlocks = 0
-        fileSize = 0L
-        fileName = ""
-        expectedChecksumPrefix = ""
-        blockSize = 0
-        solvedBlocksMap.clear()
-        equationsList.clear()
-        totalDropsReceived = 0
+        return try {
+            Protocol.unpackFile(container)
+        } catch (_: Exception) {
+            null
+        }
     }
 }

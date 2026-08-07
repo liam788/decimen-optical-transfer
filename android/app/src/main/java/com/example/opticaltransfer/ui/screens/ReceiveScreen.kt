@@ -376,7 +376,16 @@ fun CameraXPreviewView(
     onQrScanned: (String) -> Unit
 ) {
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
-    val reader = remember { MultiFormatReader() }
+    val reader = remember {
+        MultiFormatReader().apply {
+            val hints = mapOf<DecodeHintType, Any>(
+                DecodeHintType.POSSIBLE_FORMATS to listOf(BarcodeFormat.QR_CODE),
+                DecodeHintType.CHARACTER_SET to "ISO-8859-1",
+                DecodeHintType.TRY_HARDER to true
+            )
+            setHints(hints)
+        }
+    }
 
     AndroidView(
         factory = { ctx ->
@@ -391,6 +400,7 @@ fun CameraXPreviewView(
                 }
 
                 val imageAnalysis = ImageAnalysis.Builder()
+                    .setTargetResolution(android.util.Size(1280, 720))
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
 
@@ -409,7 +419,7 @@ fun CameraXPreviewView(
 
                     try {
                         val result = reader.decodeWithState(bitmap)
-                        if (result != null && result.text.isNotBlank()) {
+                        if (result != null && result.text != null) {
                             onQrScanned(result.text)
                         }
                     } catch (_: Exception) {
