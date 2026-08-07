@@ -46,12 +46,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ─────────────────────────────────────────────
-  # JOB 2: Build Android APK
+  # JOB 2: Build Native Android APK
   # ─────────────────────────────────────────────
   build-android:
-    name: Build Android APK
+    name: Build Native Android APK
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -61,32 +60,19 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.22.x'
-          channel: 'stable'
-          cache: true
+      - name: Make Gradlew Executable
+        working-directory: android
+        run: chmod +x gradlew
 
-      - name: Write local.properties
-        working-directory: flutter_optical_transfer/android
-        run: |
-          echo "flutter.sdk=$FLUTTER_ROOT" > local.properties
-          echo "flutter.buildMode=release" >> local.properties
-          echo "flutter.versionName=1.0.0" >> local.properties
-          echo "flutter.versionCode=1" >> local.properties
+      - name: Build Android Release APK
+        working-directory: android
+        run: ./gradlew assembleRelease
 
-      - name: Build APK
-        working-directory: flutter_optical_transfer
-        run: |
-          flutter pub get
-          flutter build apk --release
-
-      - name: Upload Android APK
+      - name: Upload Android APK to Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: flutter_optical_transfer/build/app/outputs/flutter-apk/app-release.apk
+          files: android/app/build/outputs/apk/release/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
