@@ -68,20 +68,20 @@ object FountainMath {
     }
 
     fun frameSeed(sessionId: Int, seq: Int): Int {
-        var h = (Math.imul(sessionId + 1, 0x9e3779b1.toInt()) xor (seq + 0x85ebca6b.toInt()))
-        h = Math.imul(h xor (h ushr 13), 0xc2b2ae35.toInt())
-        return h xor (h ushr 16)
+        var h = ((sessionId + 1) * 0x9e3779b1.toInt()) xor (seq + 0x85ebca6b.toInt())
+        h = (h xor h.ushr(13)) * 0xc2b2ae35.toInt()
+        return h xor h.ushr(16)
     }
 
-    fun splitmix32(seed: Int): () => Long {
+    fun splitmix32(seed: Int): () -> Long {
         var s = seed
         return {
-            s = (s + 0x9e3779b9.toInt())
-            var t = s xor (s ushr 16)
-            t = Math.imul(t, 0x21f0aaad.toInt())
-            t = t xor (t ushr 15)
-            t = Math.imul(t, 0x735a2d97.toInt())
-            t = t xor (t ushr 15)
+            s = s + 0x9e3779b9.toInt()
+            var t = s xor s.ushr(16)
+            t = t * 0x21f0aaad.toInt()
+            t = t xor t.ushr(15)
+            t = t * 0x735a2d97.toInt()
+            t = t xor t.ushr(15)
             (t.toLong() and 0xFFFFFFFFL)
         }
     }
