@@ -2,6 +2,7 @@ package com.example.opticaltransfer.core.codec
 
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.util.Log
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
@@ -44,26 +45,41 @@ object QrMatrixEncoder {
      * Generates a high-contrast QR Code bitmap from binary frame drop
      */
     fun generateQrBitmap(binaryDrop: ByteArray, size: Int = 300): Bitmap? {
-        return try {
+            val tag = "QrMatrixEncoder"
             val text = encodeDropToLatin1Text(binaryDrop)
-            val hints = mapOf<EncodeHintType, Any>(
-                EncodeHintType.CHARACTER_SET to "ISO-8859-1",
-                EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.L,
-                EncodeHintType.MARGIN to 1
+            val eccLevels = listOf(
+                ErrorCorrectionLevel.L,
+                ErrorCorrectionLevel.M,
+                ErrorCorrectionLevel.Q,
+                ErrorCorrectionLevel.H
             )
-            val writer = QRCodeWriter()
-            val bitMatrix = writer.encode(text, BarcodeFormat.QR_CODE, size, size, hints)
-            val width = bitMatrix.width
-            val height = bitMatrix.height
-            val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
-            for (x in 0 until width) {
-                for (y in 0 until height) {
-                    bmp.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
+
+            for (ecc in eccLevels) {
+                try {
+                    val hints = mapOf<EncodeHintType, Any>(
+                        EncodeHintType.CHARACTER_SET to "ISO-8859-1",
+                        EncodeHintType.ERROR_CORRECTION to ecc,
+                        EncodeHintType.MARGIN to 1
+                    )
+                    val writer = QRCodeWriter()
+                    val bitMatrix = writer.encode(text, BarcodeFormat.QR_CODE, size, size, hints)
+                    val width = bitMatrix.width
+                    val height = bitMatrix.height
+                    val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+                    for (x in 0 until width) {
+                        for (y in 0 until height) {
+                            bmp.setPixel(x, y, if (bitMatrix[x, y]) Color.BLACK else Color.WHITE)
+                        }
+                    }
+                    Log.d(tag, "Generated QR bitmap textLen=${text.length} size=${size} ecc=${ecc}")
+                    return bmp
+                } catch (e: Exception) {
+                    Log.w(tag, "QR generation failed with ECC=$ecc: ${e.message}")
                 }
             }
-            bmp
-        } catch (_: Exception) {
-            null
+
+            Log.e(tag, "Failed to generate QR bitmap for text length=${text.length}")
+            return null
         }
     }
 
