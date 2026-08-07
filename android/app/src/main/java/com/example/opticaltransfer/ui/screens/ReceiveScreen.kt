@@ -1,6 +1,7 @@
 package com.example.opticaltransfer.ui.screens
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -31,6 +32,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.example.opticaltransfer.platform.ApkInstaller
 import com.example.opticaltransfer.platform.CameraOpticsController
+import com.example.opticaltransfer.platform.ScreenBrightnessHelper
 import com.example.opticaltransfer.receiver.ReceiverController
 import com.example.opticaltransfer.ui.theme.*
 import com.google.zxing.*
@@ -43,6 +45,7 @@ fun ReceiveScreen(
     onBackClicked: () -> Unit
 ) {
     val context = LocalContext.current
+    val activity = context as? Activity
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val receiverController = remember { ReceiverController() }
@@ -70,10 +73,13 @@ fun ReceiveScreen(
         receiverController.startScanning()
     }
 
+    // Keep display awake during scanning
     DisposableEffect(Unit) {
+        activity?.let { ScreenBrightnessHelper.setMaxBrightnessAndKeepAwake(it, true) }
         onDispose {
             receiverController.stopScanning()
             opticsController.toggleTorch(false)
+            activity?.let { ScreenBrightnessHelper.setMaxBrightnessAndKeepAwake(it, false) }
         }
     }
 
@@ -129,8 +135,8 @@ fun ReceiveScreen(
                 CameraXPreviewView(
                     context = context,
                     lifecycleOwner = lifecycleOwner,
-                    onQrScanned = { qrText ->
-                        receiverController.processScannedQrText(context, qrText)
+                    onQrScannedBytes = { rawBytes ->
+                        receiverController.processScannedQrBytes(context, rawBytes)
                     }
                 )
 
@@ -373,7 +379,7 @@ fun CompletionSuccessDialog(
 fun CameraXPreviewView(
     context: Context,
     lifecycleOwner: androidx.lifecycle.LifecycleOwner,
-    onQrScanned: (String) -> Unit
+    onQrScannedBytes: (ByteArray) -> Unit
 ) {
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val reader = remember {
@@ -419,8 +425,25 @@ fun CameraXPreviewView(
 
                     try {
                         val result = reader.decodeWithState(bitmap)
-                        if (result != null && result.text != null) {
-                            onQrScanned(result.text)
+                        if (result != null) {
+                            val byteSegments = result.resultMetadata?.get(ResultMetadataType.BYTE_SEGMENTS) as? List<*>
+                            val rawBytes: ByteArray? = if (!byteSegments.isNullOrEmpty()) {
+                                val segments = byteSegments.filterIsInstance<ByteArray>()
+                                val totalSize = segments.sumOf { it.size }
+                                val combined = ByteArray(totalSize)
+                                var offset = 0
+                                for (seg in segments) {
+                                    System.arraycopy(seg, 0, combined, offset, seg.size)
+                                    offset += seg.size
+                                }
+                                combined
+                            } else {
+                                result.rawBytes ?: result.text?.toByteArray(Charsets.ISO_8859_1)
+                            }
+
+                            if (rawBytes != null && rawBytes.size >= 20) {
+                                onQrScannedBytes(rawBytes)
+                            }
                         }
                     } catch (_: Exception) {
                     } finally {
