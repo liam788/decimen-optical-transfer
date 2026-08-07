@@ -68,8 +68,9 @@ class MultiQrGridWidget extends StatelessWidget {
                 final cellIndex = rowIndex * dim + colIndex;
                 final chunk = frameChunks[cellIndex % frameChunks.length];
                 
-                // Base64 encode binary frame chunk into clean ASCII for QR generator
-                final qrData = base64Encode(chunk);
+                // Encode binary frame chunk into ISO-8859-1 string (Latin1) to match native receivers
+                final qrData = latin1.decode(chunk);
+                debugPrint('QR chunk size: ${chunk.length} -> qrData length: ${qrData.length}');
 
                 return Expanded(
                   child: Padding(
@@ -77,7 +78,7 @@ class MultiQrGridWidget extends StatelessWidget {
                     child: QrImageView(
                       data: qrData,
                       version: QrVersions.auto,
-                      errorCorrectionLevel: QrErrorCorrectLevel.L,
+                      errorCorrectionLevel: QrErrorCorrectLevel.M,
                       backgroundColor: Colors.white,
                       padding: const EdgeInsets.all(2),
                       errorStateBuilder: (cxt, err) {
