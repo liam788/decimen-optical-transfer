@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'ui/screens/home_screen.dart';
+import 'ui/theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -12,15 +13,11 @@ class OpticalTransferApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Decimen Optical Transfer',
+      title: 'Optical Transfer',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.cyan,
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.darkTheme,
       home: const HomeScreen(),
     );
   }
 }
+

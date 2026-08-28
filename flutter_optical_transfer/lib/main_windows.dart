@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'ui/screens/home_screen_desktop.dart';
+import 'ui/theme/app_theme.dart';
 
-/// Windows desktop entry point — uses desktop-compatible home screen
-/// without camera/permission_handler/share_plus dependencies.
+/// Windows desktop entry point with Optical Transfer Brand Design System
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const OpticalTransferApp());
@@ -14,15 +14,11 @@ class OpticalTransferApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Decimen Optical Transfer',
+      title: 'Optical Transfer',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primarySwatch: Colors.cyan,
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.darkTheme,
       home: const HomeScreenDesktop(),
     );
   }
 }
+

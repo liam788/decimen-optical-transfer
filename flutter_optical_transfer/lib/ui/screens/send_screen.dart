@@ -6,6 +6,7 @@ import '../../core/fountain.dart';
 import '../../core/protocol.dart';
 import '../../sender/adaptive_tuner.dart';
 import '../../sender/multi_qr_grid.dart';
+import '../theme/app_theme.dart';
 
 class SendScreen extends StatefulWidget {
   final String fileName;
@@ -89,10 +90,10 @@ class _SendScreenState extends State<SendScreen> {
   Widget build(BuildContext context) {
     if (_errorMessage != null) {
       return Scaffold(
-        backgroundColor: const Color(0xFF0F172A),
+        backgroundColor: AppColors.opticalBlack,
         appBar: AppBar(
           title: const Text("Error Preparing File"),
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: AppColors.secondaryBackground,
         ),
         body: Center(
           child: Padding(
@@ -100,11 +101,11 @@ class _SendScreenState extends State<SendScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.error_outline, color: Colors.redAccent, size: 64),
+                const Icon(Icons.error_outline, color: AppColors.error, size: 64),
                 const SizedBox(height: 16),
                 Text(
                   _errorMessage!,
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                  style: const TextStyle(color: AppColors.textEmphasis, fontSize: 18),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 24),
@@ -121,10 +122,10 @@ class _SendScreenState extends State<SendScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppColors.opticalBlack,
       appBar: AppBar(
         title: Text("Streaming: ${widget.fileName}"),
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: AppColors.secondaryBackground,
       ),
       body: SafeArea(
         child: Column(
@@ -136,19 +137,20 @@ class _SendScreenState extends State<SendScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 20),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     "Size: ${((_packedFile?.transmittedSize ?? 0) / 1024).toStringAsFixed(1)} KB",
-                    style: const TextStyle(color: Colors.white70),
+                    style: const TextStyle(color: AppColors.textSecondary),
                   ),
                   Text(
                     "Frames Sent: $_frameIndex",
-                    style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: AppColors.opticalGreen, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -163,12 +165,20 @@ class _SendScreenState extends State<SendScreen> {
                     final maxAvailableSide = math.min(constraints.maxWidth, constraints.maxHeight);
                     final qrSquareSize = math.max(100.0, maxAvailableSide);
                     return Center(
-                      child: SizedBox(
-                        width: qrSquareSize,
-                        height: qrSquareSize,
-                        child: MultiQrGridWidget(
-                          frameChunks: _currentFrameChunks,
-                          settings: _settings,
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: SizedBox(
+                          width: qrSquareSize - 32,
+                          height: qrSquareSize - 32,
+                          child: MultiQrGridWidget(
+                            frameChunks: _currentFrameChunks,
+                            settings: _settings,
+                          ),
                         ),
                       ),
                     );
@@ -180,7 +190,10 @@ class _SendScreenState extends State<SendScreen> {
             // Controls Panel (Tuning A, B, F)
             Container(
               padding: const EdgeInsets.all(16),
-              color: const Color(0xFF1E293B),
+              decoration: const BoxDecoration(
+                color: AppColors.secondaryBackground,
+                border: Border(top: BorderSide(color: AppColors.border)),
+              ),
               child: Column(
                 children: [
                   Row(
@@ -189,8 +202,8 @@ class _SendScreenState extends State<SendScreen> {
                       // Grid Dimension Switcher (1x1, 2x2, 3x3)
                       DropdownButton<int>(
                         value: _settings.qrGridDimension,
-                        dropdownColor: const Color(0xFF1E293B),
-                        style: const TextStyle(color: Colors.white),
+                        dropdownColor: AppColors.secondaryBackground,
+                        style: const TextStyle(color: AppColors.textPrimary),
                         items: const [
                           DropdownMenuItem(value: 1, child: Text("1x1 (1 QR)")),
                           DropdownMenuItem(value: 2, child: Text("2x2 Grid (4 QR)")),
@@ -209,12 +222,12 @@ class _SendScreenState extends State<SendScreen> {
                       // FPS Target Switcher
                       DropdownButton<int>(
                         value: _settings.targetFps,
-                        dropdownColor: const Color(0xFF1E293B),
-                        style: const TextStyle(color: Colors.white),
+                        dropdownColor: AppColors.secondaryBackground,
+                        style: const TextStyle(color: AppColors.textPrimary),
                         items: const [
-                          DropdownMenuItem(value: 15, child: Text("15 FPS")),
-                          DropdownMenuItem(value: 30, child: Text("30 FPS")),
-                          DropdownMenuItem(value: 60, child: Text("60 FPS")),
+                          DropdownMenuItem(value: 15, child: Text("15 FPS (Safe)")),
+                          DropdownMenuItem(value: 30, child: Text("30 FPS (Standard)")),
+                          DropdownMenuItem(value: 60, child: Text("60 FPS (Fast)")),
                         ],
                         onChanged: (val) {
                           if (val != null) {
@@ -229,10 +242,10 @@ class _SendScreenState extends State<SendScreen> {
                       // Color Codec Toggle (Feature F)
                       Row(
                         children: [
-                          const Text("Color", style: TextStyle(color: Colors.white, fontSize: 12)),
+                          const Text("Color", style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                           Switch(
                             value: _settings.useColorCodec,
-                            activeColor: Colors.cyanAccent,
+                            activeColor: AppColors.opticalGreen,
                             onChanged: (val) {
                               setState(() {
                                 _settings.useColorCodec = val;
@@ -252,5 +265,6 @@ class _SendScreenState extends State<SendScreen> {
     );
   }
 }
+
 
 

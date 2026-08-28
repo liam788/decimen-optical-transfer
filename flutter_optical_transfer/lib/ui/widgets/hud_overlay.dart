@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 /// Feature E: HUD Overlay & Signal Quality Goodput Meter
 class HudOverlayWidget extends StatelessWidget {
@@ -30,21 +31,21 @@ class HudOverlayWidget extends StatelessWidget {
             height: 280,
             decoration: BoxDecoration(
               border: Border.all(
-                color: isComplete ? Colors.greenAccent : Colors.cyanAccent,
-                width: 3,
+                color: isComplete ? AppColors.success : AppColors.opticalGreen,
+                width: 2.5,
               ),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: (isComplete ? Colors.greenAccent : Colors.cyanAccent).withOpacity(0.3),
+                  color: (isComplete ? AppColors.success : AppColors.opticalGreen).withOpacity(0.25),
                   blurRadius: 16,
-                  spreadRadius: 4,
+                  spreadRadius: 2,
                 )
               ],
             ),
             child: isComplete
                 ? const Center(
-                    child: Icon(Icons.check_circle, size: 80, color: Colors.greenAccent),
+                    child: Icon(Icons.check_circle_outline, size: 80, color: AppColors.success),
                   )
                 : null,
           ),
@@ -58,9 +59,9 @@ class HudOverlayWidget extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.75),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white24),
+              color: AppColors.secondaryBackground.withOpacity(0.9),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -70,11 +71,11 @@ class HudOverlayWidget extends StatelessWidget {
                   children: [
                     Text(
                       "FPS: ${currentFps.toStringAsFixed(1)}",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: AppColors.textEmphasis, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       "Speed: ${goodputKbps.toStringAsFixed(1)} KB/s",
-                      style: const TextStyle(color: Colors.cyanAccent, fontSize: 12),
+                      style: const TextStyle(color: AppColors.opticalGreen, fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -83,12 +84,12 @@ class HudOverlayWidget extends StatelessWidget {
                   children: [
                     Text(
                       "Blocks: $solvedBlocks / $totalBlocks",
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: AppColors.textEmphasis, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       "${(progress * 100).toStringAsFixed(1)}%",
                       style: TextStyle(
-                        color: isComplete ? Colors.greenAccent : Colors.orangeAccent,
+                        color: isComplete ? AppColors.success : AppColors.opticalGreen,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -110,10 +111,10 @@ class HudOverlayWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
                 child: LinearProgressIndicator(
                   value: progress,
-                  minHeight: 12,
-                  backgroundColor: Colors.white24,
+                  minHeight: 10,
+                  backgroundColor: AppColors.border,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isComplete ? Colors.greenAccent : Colors.cyanAccent,
+                    isComplete ? AppColors.success : AppColors.opticalGreen,
                   ),
                 ),
               ),
@@ -122,7 +123,7 @@ class HudOverlayWidget extends StatelessWidget {
                 isComplete
                     ? "Transfer Complete! Verifying SHA-256..."
                     : "Align camera with sending screen",
-                style: const TextStyle(color: Colors.white, fontSize: 13),
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
               ),
             ],
           ),
@@ -131,3 +132,4 @@ class HudOverlayWidget extends StatelessWidget {
     );
   }
 }
+

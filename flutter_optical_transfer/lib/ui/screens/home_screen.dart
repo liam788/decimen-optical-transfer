@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../platform/apk_extractor.dart';
 import '../../core/camera_tuner.dart';
 import '../widgets/camera_tuning_dialog.dart';
+import '../theme/app_theme.dart';
 import 'send_screen.dart';
 import 'receive_screen.dart';
 
@@ -69,10 +70,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Modern dark slate
+      backgroundColor: AppColors.opticalBlack,
       appBar: AppBar(
-        title: const Text("Decimen Optical Transfer"),
-        backgroundColor: const Color(0xFF1E293B),
+        title: const Text("Optical Transfer"),
+        backgroundColor: AppColors.secondaryBackground,
         elevation: 0,
       ),
       body: SafeArea(
@@ -88,8 +89,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        backgroundColor: Colors.cyanAccent.shade700,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        backgroundColor: AppColors.darkTransfer,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: _selectFileAndSend,
                       icon: const Icon(Icons.upload_file, color: Colors.white, size: 28),
@@ -104,8 +105,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        backgroundColor: Colors.greenAccent.shade700,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        backgroundColor: AppColors.surfaceElevated,
+                        side: const BorderSide(color: AppColors.border),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () {
                         Navigator.push(
@@ -113,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           MaterialPageRoute(builder: (_) => const ReceiveScreen()),
                         );
                       },
-                      icon: const Icon(Icons.camera_alt, color: Colors.white, size: 28),
+                      icon: const Icon(Icons.camera_alt, color: AppColors.opticalGreen, size: 28),
                       label: const Text(
                         "Receive",
                         style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
@@ -126,7 +128,8 @@ class _HomeScreenState extends State<HomeScreen> {
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: Colors.cyanAccent),
+                  side: const BorderSide(color: AppColors.border),
+                  backgroundColor: AppColors.surface,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 onPressed: () {
@@ -136,10 +139,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                   CameraTuningDialog.show(context, profile);
                 },
-                icon: const Icon(Icons.speed, color: Colors.cyanAccent),
+                icon: const Icon(Icons.speed, color: AppColors.opticalGreen),
                 label: const Text(
-                  "Camera Diagnostics & Suggested Windows Settings",
-                  style: TextStyle(color: Colors.cyanAccent, fontSize: 13, fontWeight: FontWeight.bold),
+                  "Camera Diagnostics & Settings",
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
               ),
 
@@ -149,32 +152,35 @@ class _HomeScreenState extends State<HomeScreen> {
               if (Platform.isAndroid) ...[
                 const Text(
                   "Share Installed Android Apps (APK)",
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 12),
                 Expanded(
                   child: _loadingApps
-                      ? const Center(child: CircularProgressIndicator(color: Colors.cyanAccent))
+                      ? const Center(child: CircularProgressIndicator(color: AppColors.opticalGreen))
                       : ListView.builder(
                           itemCount: _installedApps.length,
                           itemBuilder: (context, index) {
                             final app = _installedApps[index];
                             return Card(
-                              color: const Color(0xFF1E293B),
+                              color: AppColors.surface,
                               margin: const EdgeInsets.symmetric(vertical: 6),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: const BorderSide(color: AppColors.border),
+                              ),
                               child: ListTile(
                                 leading: const CircleAvatar(
-                                  backgroundColor: Colors.cyan,
-                                  child: Icon(Icons.android, color: Colors.white),
+                                  backgroundColor: AppColors.surfaceElevated,
+                                  child: Icon(Icons.android, color: AppColors.opticalGreen),
                                 ),
-                                title: Text(app.name, style: const TextStyle(color: Colors.white)),
+                                title: Text(app.name, style: const TextStyle(color: AppColors.textPrimary)),
                                 subtitle: Text(
                                   app.packageName,
-                                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                                  style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                                 ),
                                 trailing: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent.shade700),
+                                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.darkTransfer),
                                   onPressed: () => _sendApk(app),
                                   child: const Text("Send APK", style: TextStyle(color: Colors.white)),
                                 ),
@@ -189,12 +195,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.devices, size: 64, color: Colors.white38),
+                        Icon(Icons.devices, size: 64, color: AppColors.textMuted),
                         SizedBox(height: 16),
                         Text(
-                          "Cross-Platform Light Transfer Active\nSelect any file to stream visual fountain codes.",
+                          "Optical Stream Engine Active\nSelect any file to stream visual fountain codes.",
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white70, fontSize: 15),
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 15),
                         ),
                       ],
                     ),
@@ -208,3 +214,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+

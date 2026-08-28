@@ -49,7 +49,7 @@ a {
 button {
   font: inherit;
   color: var(--accent-ink);
-  background: var(--accent);
+  background: var(--accent-btn);
   border: 0;
   border-radius: 8px;
   padding: 14px 36px;
@@ -60,8 +60,9 @@ button {
 }
 
 button:hover {
-  background: var(--accent-hi);
+  background: var(--accent-btn-hi);
 }
+
 
 button:focus-visible {
   outline: 2px solid var(--text);
@@ -288,27 +289,29 @@ details.settings input[type="range"] {
    functional (the QR quiet zone, the letterbox behind the camera). */
 :root {
   color-scheme: dark;
-  --bg: #070a11;
-  --panel: #0e1420;
-  --panel-strong: #121a29;
-  --line: #1d2740;
-  --line-bright: #34466f;
-  --text: #dde6f5;
-  --text-dim: #b9c6dd;
-  --muted: #7c8aa8;
-  --muted-dim: #5c6883;
-  --accent: #58c8ff;
-  --accent-hi: #8adaff;
-  /* Ink for text sitting ON the accent. Separate token because a light theme
-     would need this to go the other way. */
-  --accent-ink: #04121c;
-  --green: #5fe0b0;
-  --red: #ff7b72;
+  --bg: #0A0A0A;
+  --panel: #181B18;
+  --panel-strong: #202420;
+  --line: #2B302B;
+  --line-bright: #3A403A;
+  --text: #F5F7F2;
+  --text-dim: #B7BDB7;
+  --muted: #737A73;
+  --muted-dim: #555C55;
+  --accent: #98B878;
+  --accent-hi: #88A868;
+  --accent-btn: #5C7F3F;
+  --accent-btn-hi: #6F914F;
+  /* Ink for text sitting ON the button accent. */
+  --accent-ink: #FFFFFF;
+  --green: #5E9F62;
+  --red: #C85A57;
   /* Behind the camera image: stays near-black in any theme. */
-  --viewport-bg: #04070d;
-  --accent-rgb: 88, 200, 255;
-  --bg-rgb: 7, 10, 17;
+  --viewport-bg: #050605;
+  --accent-rgb: 152, 184, 120;
+  --bg-rgb: 10, 10, 10;
 }
+
 
 /* Column flex (gap zeroed — the base body gap would pad between header, main
    and footer) so the shells can grow and keep the footer at the bottom of

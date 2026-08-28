@@ -25,7 +25,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           body: |
-            ## Decimen Optical Transfer — Universal Release
+            ## Optical Transfer — Universal Cross-Platform Release
 
             Zero-network optical file transfer via fountain-coded light streams.
 
@@ -35,13 +35,14 @@ jobs:
             | 🌐 Web (Sender) | `decimen-sender.html` | Open in any browser, no install |
             | 🌐 Web (Receiver) | `decimen-receiver.html` | Open in any browser, no install |
             | 🤖 Android | `app-release.apk` | Sideload on Android 5.0+ |
-            | 🪟 Windows | `decimen-windows.zip` | Extract and run `.exe` |
+            | 🪟 Windows | `decimen-windows.zip` | Extract and run `.exe` (100% In-App Standalone) |
             | 🍎 iOS | `decimen-ios.zip` | Unsigned — install via AltStore/Sideloadly |
             | 🖥️ macOS | `decimen-macos.zip` | Unsigned — right-click → Open to bypass Gatekeeper |
           files: |
             released/decimen-sender.html
             released/decimen-receiver.html
             released/decimen-windows.zip
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

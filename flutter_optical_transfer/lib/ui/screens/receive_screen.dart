@@ -10,6 +10,7 @@ import '../../core/camera_tuner.dart';
 import '../../scanner/camera_controller.dart';
 import '../widgets/hud_overlay.dart';
 import '../widgets/camera_tuning_dialog.dart';
+import '../theme/app_theme.dart';
 
 class ReceiveScreen extends StatefulWidget {
   const ReceiveScreen({super.key});
@@ -86,26 +87,30 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        title: const Text("File Recovered Successfully!", style: TextStyle(color: Colors.greenAccent)),
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        title: const Text("File Recovered Successfully!", style: TextStyle(color: AppColors.success, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("File Name: ${file.name}", style: const TextStyle(color: Colors.white)),
+            Text("File Name: ${file.name}", style: const TextStyle(color: AppColors.textEmphasis, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text("Size: ${(file.bytes.length / 1024).toStringAsFixed(1)} KB", style: const TextStyle(color: Colors.white70)),
+            Text("Size: ${(file.bytes.length / 1024).toStringAsFixed(1)} KB", style: const TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 8),
-            const Text("SHA-256 Verified ✓", style: TextStyle(color: Colors.cyanAccent)),
+            const Text("SHA-256 Verified ✓", style: TextStyle(color: AppColors.opticalGreen)),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => _saveAndShareFile(file),
-            child: const Text("Save & Share", style: TextStyle(color: Colors.cyanAccent)),
+            child: const Text("Save & Share", style: TextStyle(color: AppColors.opticalGreen)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent.shade700),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.darkTransfer),
             onPressed: () {
               Navigator.pop(context);
               Navigator.pop(context);
@@ -116,6 +121,7 @@ class _ReceiveScreenState extends State<ReceiveScreen> {
       ),
     );
   }
+
 
   void _saveAndShareFile(OpticalFile file) async {
     setState(() => _isSaving = true);

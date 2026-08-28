@@ -128,7 +128,7 @@ export function frameIndices(
 }
 
 function xorInto(dst: Uint32Array, src: Uint32Array): void {
-  for (let i = 0; i < dst.length; i++) dst[i] = (dst[i]! ^ src[i]!) >>> 0;
+  for (let i = 0; i < dst.length; i++) dst[i]! ^= src[i]!;
 }
 
 export class LTEncoder {
@@ -156,9 +156,10 @@ export class LTEncoder {
   encode(seq: number): Uint8Array {
     const idx = frameIndices(this.k, this.cdf, this.sessionId, seq);
     const out = new Uint32Array(this.words);
-    for (const b of idx) {
+    for (let i = 0, len = idx.length; i < len; i++) {
+      const b = idx[i]!;
       const off = b * this.words;
-      for (let w = 0; w < this.words; w++) out[w] = (out[w]! ^ this.blocks[off + w]!) >>> 0;
+      for (let w = 0; w < this.words; w++) out[w]! ^= this.blocks[off + w]!;
     }
     return new Uint8Array(out.buffer, 0, this.blockLen);
   }
@@ -206,7 +207,7 @@ export class LTDecoder {
     const idx = new Set(frameIndices(this.k, this.cdf, this.sessionId, seq));
     const words = new Uint32Array(this.words);
     new Uint8Array(words.buffer).set(block.subarray(0, this.blockLen));
-    for (const b of [...idx]) {
+    for (const b of idx) {
       const s = this.solved[b];
       if (s) {
         xorInto(words, s);
