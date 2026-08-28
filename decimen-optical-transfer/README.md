@@ -1,4 +1,4 @@
-# Decimen Optical Transfer: fountain-coded QR file transfer
+﻿# Optical Transfer: fountain-coded QR file transfer
 
 Send a file between two devices using nothing but a **screen and a camera**.
 One page displays the file as an endless stream of animated QR codes; another

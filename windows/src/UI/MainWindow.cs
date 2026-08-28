@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using OpticalTransfer.Core;
@@ -34,6 +35,8 @@ namespace OpticalTransfer.UI
 
         // Receiver UI Elements
         private OpticalTransferRing _rxRing;
+        private Border _rxViewfinderBorder;
+        private Grid _rxNoCameraPlaceholder;
         private TextBlock _rxInstantFpsText;
         private TextBlock _rxGoodputText;
         private TextBlock _rxIngestedText;
@@ -44,12 +47,11 @@ namespace OpticalTransfer.UI
         private TextBlock _rxFilePathText;
         private Button _rxShowInExplorerBtn;
         private ComboBox _rxCameraCombo;
-        private Button _rxTorchBtn;
-        private bool _isTorchOn = false;
         private string _lastSavedFilePath = null;
 
         // Sender UI Elements
         private QrProjector _txProjector;
+        private Border _txPlaceholderCard;
         private TextBlock _txFileNameText;
         private TextBlock _txFileSizeText;
         private TextBlock _txKBlocksText;
@@ -65,16 +67,24 @@ namespace OpticalTransfer.UI
         // State Tracking
         private int _currentNavIndex = 0;
         private readonly Button[] _navButtons = new Button[4];
+        private readonly Border[] _navIndicators = new Border[4];
 
         public MainWindow()
         {
-            Title = "Optical Transfer - Zero-Network Visual Data Stream (Windows)";
-            Width = 1100;
-            Height = 720;
-            MinWidth = 900;
-            MinHeight = 600;
+            Title = "Optical Transfer - Zero-Network Visual Data Stream";
+            Width = 980;
+            Height = 640;
+            MinWidth = 760;
+            MinHeight = 500;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             Background = BrandColors.OpticalBlackBrush;
+
+            // Set official application logo icon
+            BitmapImage logo = LogoAsset.GetLogoImage();
+            if (logo != null)
+            {
+                this.Icon = logo;
+            }
 
             _cameraProvider = new WindowsCameraProvider();
             _txController = new TxSessionController(this);
@@ -87,7 +97,7 @@ namespace OpticalTransfer.UI
         private void InitializeLayout()
         {
             _mainGrid = new Grid();
-            _mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(260) });
+            _mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(220) });
             _mainGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             // 1. Left Navigation Rail
@@ -103,11 +113,12 @@ namespace OpticalTransfer.UI
             navGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // Items
             navGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // Status Footer
 
-            // Brand Header
+            // Brand Header with Official Logo Icon
             StackPanel headerStack = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
-                Margin = new Thickness(24, 28, 24, 28)
+                Margin = new Thickness(18, 22, 18, 22),
+                VerticalAlignment = VerticalAlignment.Center
             };
 
             Border iconBorder = new Border
@@ -117,34 +128,53 @@ namespace OpticalTransfer.UI
                 Background = BrandColors.SurfaceElevatedBrush,
                 CornerRadius = new CornerRadius(8),
                 BorderBrush = BrandColors.BorderBrush,
-                BorderThickness = new Thickness(1)
+                BorderThickness = new Thickness(1),
+                ClipToBounds = true
             };
-            TextBlock iconText = new TextBlock
+
+            BitmapImage logoImg = LogoAsset.GetLogoImage();
+            if (logoImg != null)
             {
-                Text = "OT",
-                Foreground = BrandColors.OpticalGreenBrush,
-                FontWeight = FontWeights.Bold,
-                FontSize = 14,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            iconBorder.Child = iconText;
+                Image img = new Image
+                {
+                    Source = logoImg,
+                    Width = 32,
+                    Height = 32,
+                    Stretch = Stretch.Uniform,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                iconBorder.Child = img;
+            }
+            else
+            {
+                TextBlock iconText = new TextBlock
+                {
+                    Text = "OT",
+                    Foreground = BrandColors.OpticalGreenBrush,
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 14,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                iconBorder.Child = iconText;
+            }
             headerStack.Children.Add(iconBorder);
 
-            StackPanel titleStack = new StackPanel { Margin = new Thickness(14, 0, 0, 0) };
+            StackPanel titleStack = new StackPanel { Margin = new Thickness(12, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
             TextBlock brandTitle = new TextBlock
             {
                 Text = "OPTICAL",
                 Foreground = BrandColors.TextEmphasisBrush,
                 FontWeight = FontWeights.Bold,
-                FontSize = 14
+                FontSize = 13
             };
             TextBlock brandSub = new TextBlock
             {
                 Text = "TRANSFER",
                 Foreground = BrandColors.OpticalGreenBrush,
                 FontWeight = FontWeights.Bold,
-                FontSize = 12
+                FontSize = 11
             };
             titleStack.Children.Add(brandTitle);
             titleStack.Children.Add(brandSub);
@@ -154,13 +184,16 @@ namespace OpticalTransfer.UI
             navGrid.Children.Add(headerStack);
 
             // Nav Items
-            _navPanel = new StackPanel { Margin = new Thickness(12, 12, 12, 12) };
-            _navButtons[0] = CreateNavButton(0, "Dashboard");
-            _navButtons[1] = CreateNavButton(1, "Receive Stream");
-            _navButtons[2] = CreateNavButton(2, "Send Stream");
-            _navButtons[3] = CreateNavButton(3, "Transfers & History");
+            _navPanel = new StackPanel { Margin = new Thickness(10, 8, 10, 8) };
+            _navButtons[0] = CreateNavButton(0, "Dashboard", out _navIndicators[0]);
+            _navButtons[1] = CreateNavButton(1, "Receive Stream", out _navIndicators[1]);
+            _navButtons[2] = CreateNavButton(2, "Send Stream", out _navIndicators[2]);
+            _navButtons[3] = CreateNavButton(3, "Transfers & History", out _navIndicators[3]);
 
-            foreach (var btn in _navButtons) _navPanel.Children.Add(btn);
+            for (int i = 0; i < _navButtons.Length; i++)
+            {
+                _navPanel.Children.Add(_navButtons[i]);
+            }
 
             Grid.SetRow(_navPanel, 1);
             navGrid.Children.Add(_navPanel);
@@ -170,7 +203,7 @@ namespace OpticalTransfer.UI
             {
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(0, 1, 0, 0),
-                Padding = new Thickness(20)
+                Padding = new Thickness(16, 14, 16, 14)
             };
             StackPanel footerStack = new StackPanel { Orientation = Orientation.Horizontal };
             Border statusDot = new Border
@@ -180,7 +213,7 @@ namespace OpticalTransfer.UI
                 CornerRadius = new CornerRadius(4),
                 Background = BrandColors.SuccessBrush,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 10, 0)
+                Margin = new Thickness(0, 0, 8, 0)
             };
             TextBlock statusLabel = new TextBlock
             {
@@ -214,25 +247,40 @@ namespace OpticalTransfer.UI
             Content = _mainGrid;
         }
 
-        private Button CreateNavButton(int index, string label)
+        private Button CreateNavButton(int index, string label, out Border indicator)
         {
             int capturedIndex = index;
             Button btn = new Button
             {
-                Content = label,
-                Height = 40,
-                Margin = new Thickness(0, 4, 0, 4),
-                HorizontalContentAlignment = HorizontalAlignment.Left,
-                Padding = new Thickness(16, 0, 0, 0),
-                Background = Brushes.Transparent,
-                Foreground = BrandColors.TextSecondaryBrush,
-                BorderBrush = Brushes.Transparent,
-                BorderThickness = new Thickness(1),
-                FontSize = 13,
-                FontWeight = FontWeights.Medium,
-                Cursor = Cursors.Hand
+                Height = 38,
+                Margin = new Thickness(0, 3, 0, 3),
+                Style = Styles.CreateNavButtonStyle()
             };
 
+            Grid g = new Grid();
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(4) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+            g.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            indicator = new Border
+            {
+                Background = BrandColors.OpticalGreenBrush,
+                CornerRadius = new CornerRadius(2),
+                Visibility = Visibility.Collapsed
+            };
+            Grid.SetColumn(indicator, 0);
+            g.Children.Add(indicator);
+
+            TextBlock tb = new TextBlock
+            {
+                Text = label,
+                VerticalAlignment = VerticalAlignment.Center,
+                FontSize = 13
+            };
+            Grid.SetColumn(tb, 2);
+            g.Children.Add(tb);
+
+            btn.Content = g;
             btn.Click += (s, e) => NavigateTo(capturedIndex);
             return btn;
         }
@@ -246,7 +294,7 @@ namespace OpticalTransfer.UI
                 _navButtons[i].Background = isSel ? BrandColors.SurfaceElevatedBrush : Brushes.Transparent;
                 _navButtons[i].Foreground = isSel ? BrandColors.TextEmphasisBrush : BrandColors.TextSecondaryBrush;
                 _navButtons[i].BorderBrush = isSel ? BrandColors.BorderDisabledBrush : Brushes.Transparent;
-                _navButtons[i].FontWeight = isSel ? FontWeights.Bold : FontWeights.Normal;
+                _navIndicators[i].Visibility = isSel ? Visibility.Visible : Visibility.Collapsed;
             }
 
             switch (index)
@@ -254,7 +302,7 @@ namespace OpticalTransfer.UI
                 case 0: _viewContainer.Content = _dashboardView; break;
                 case 1:
                     _viewContainer.Content = _receiveView;
-                    _rxController.Start();
+                    StartReceiveSession();
                     break;
                 case 2: _viewContainer.Content = _sendView; break;
                 case 3: _viewContainer.Content = _historyView; break;
@@ -264,7 +312,8 @@ namespace OpticalTransfer.UI
         #region Dashboard View
         private void BuildDashboardView()
         {
-            _dashboardView = new Grid { Margin = new Thickness(36) };
+            _dashboardView = new Grid { Margin = new Thickness(24) };
+            ScrollViewer scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             StackPanel stack = new StackPanel();
 
             // Hero Card
@@ -273,8 +322,8 @@ namespace OpticalTransfer.UI
                 Background = BrandColors.SurfaceCardBrush,
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(16),
-                Padding = new Thickness(32)
+                CornerRadius = new CornerRadius(14),
+                Padding = new Thickness(24)
             };
 
             StackPanel heroContent = new StackPanel();
@@ -282,9 +331,9 @@ namespace OpticalTransfer.UI
             {
                 Text = "Zero-Network Optical Transfer",
                 Foreground = BrandColors.TextEmphasisBrush,
-                FontSize = 26,
+                FontSize = 22,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 8)
+                Margin = new Thickness(0, 0, 0, 6)
             };
             TextBlock heroDesc = new TextBlock
             {
@@ -292,20 +341,15 @@ namespace OpticalTransfer.UI
                 Foreground = BrandColors.TextSecondaryBrush,
                 FontSize = 13,
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 24)
+                Margin = new Thickness(0, 0, 0, 18)
             };
 
-            StackPanel heroBtns = new StackPanel { Orientation = Orientation.Horizontal };
+            WrapPanel heroBtns = new WrapPanel();
             Button sendBtn = new Button
             {
                 Content = "Send File via Screen",
-                Background = BrandColors.DarkTransferBrush,
-                Foreground = BrandColors.TextEmphasisBrush,
-                BorderThickness = new Thickness(0),
-                Padding = new Thickness(20, 10, 20, 10),
-                FontWeight = FontWeights.Bold,
-                Cursor = Cursors.Hand,
-                Margin = new Thickness(0, 0, 16, 0)
+                Style = Styles.CreatePrimaryButtonStyle(),
+                Margin = new Thickness(0, 0, 12, 8)
             };
             sendBtn.Click += (s, e) =>
             {
@@ -316,13 +360,8 @@ namespace OpticalTransfer.UI
             Button rxBtn = new Button
             {
                 Content = "Receive from Camera",
-                Background = BrandColors.SurfaceElevatedBrush,
-                Foreground = BrandColors.TextPrimaryBrush,
-                BorderBrush = BrandColors.BorderBrush,
-                BorderThickness = new Thickness(1),
-                Padding = new Thickness(20, 10, 20, 10),
-                FontWeight = FontWeights.Bold,
-                Cursor = Cursors.Hand
+                Style = Styles.CreateSecondaryButtonStyle(),
+                Margin = new Thickness(0, 0, 12, 8)
             };
             rxBtn.Click += (s, e) => NavigateTo(1);
 
@@ -340,18 +379,17 @@ namespace OpticalTransfer.UI
             {
                 Text = "WORKFLOWS & DIAGNOSTICS",
                 Foreground = BrandColors.TextMutedBrush,
-                FontSize = 12,
+                FontSize = 11,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 32, 0, 16)
+                Margin = new Thickness(0, 24, 0, 12)
             };
             stack.Children.Add(workflowLabel);
 
             Grid gridCards = new Grid();
             gridCards.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            gridCards.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
+            gridCards.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
             gridCards.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
-            // Card 1
             Border card1 = CreateFeatureCard(
                 "PC to Mobile Stream",
                 "Select any file on Windows. The screen projects rapid fountain QR droplets for your phone camera to scan.",
@@ -361,10 +399,9 @@ namespace OpticalTransfer.UI
             Grid.SetColumn(card1, 0);
             gridCards.Children.Add(card1);
 
-            // Card 2
             Border card2 = CreateFeatureCard(
                 "Mobile to PC Stream",
-                "Hold your phone screen facing your webcam. The built-in in-app receiver captures and reassembles files automatically.",
+                "Hold your phone screen facing your webcam. The in-app receiver captures and reassembles files automatically.",
                 "Open Receiver",
                 new Action(() => NavigateTo(1))
             );
@@ -372,7 +409,8 @@ namespace OpticalTransfer.UI
             gridCards.Children.Add(card2);
 
             stack.Children.Add(gridCards);
-            _dashboardView.Children.Add(stack);
+            scroll.Content = stack;
+            _dashboardView.Children.Add(scroll);
         }
 
         private Border CreateFeatureCard(string title, string desc, string actionText, Action action)
@@ -382,8 +420,8 @@ namespace OpticalTransfer.UI
                 Background = BrandColors.SurfaceCardBrush,
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(14),
-                Padding = new Thickness(24)
+                CornerRadius = new CornerRadius(12),
+                Padding = new Thickness(20)
             };
 
             StackPanel sp = new StackPanel();
@@ -391,17 +429,17 @@ namespace OpticalTransfer.UI
             {
                 Text = title,
                 Foreground = BrandColors.TextEmphasisBrush,
-                FontSize = 16,
+                FontSize = 15,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 8)
+                Margin = new Thickness(0, 0, 0, 6)
             };
             TextBlock d = new TextBlock
             {
                 Text = desc,
                 Foreground = BrandColors.TextSecondaryBrush,
-                FontSize = 13,
+                FontSize = 12,
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 20)
+                Margin = new Thickness(0, 0, 0, 16)
             };
             Button actBtn = new Button
             {
@@ -410,6 +448,7 @@ namespace OpticalTransfer.UI
                 Foreground = BrandColors.OpticalGreenBrush,
                 BorderThickness = new Thickness(0),
                 FontWeight = FontWeights.Bold,
+                FontSize = 12,
                 HorizontalAlignment = HorizontalAlignment.Left,
                 Cursor = Cursors.Hand
             };
@@ -428,19 +467,19 @@ namespace OpticalTransfer.UI
         {
             _receiveView = new Grid();
             _receiveView.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            _receiveView.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(380) });
+            _receiveView.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(300) });
 
             // Left: Viewfinder & Ring Canvas
-            Grid leftGrid = new Grid { Margin = new Thickness(24) };
+            Grid leftGrid = new Grid { Margin = new Thickness(18) };
             leftGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             leftGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            Border viewfinder = new Border
+            _rxViewfinderBorder = new Border
             {
                 Background = BrandColors.SurfaceCardBrush,
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(1.5),
-                CornerRadius = new CornerRadius(16),
+                CornerRadius = new CornerRadius(14),
                 ClipToBounds = true
             };
 
@@ -450,6 +489,46 @@ namespace OpticalTransfer.UI
             _rxRing = new OpticalTransferRing();
             vfGrid.Children.Add(_rxRing);
 
+            // Placeholder when no camera is detected
+            _rxNoCameraPlaceholder = new Grid
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Visibility = Visibility.Collapsed
+            };
+            StackPanel noCamStack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
+            TextBlock noCamTitle = new TextBlock
+            {
+                Text = "No Physical Webcam Detected",
+                Foreground = BrandColors.TextEmphasisBrush,
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                TextAlignment = TextAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 6)
+            };
+            TextBlock noCamSub = new TextBlock
+            {
+                Text = "Connect a USB webcam or click below to ingest captured frame files directly.",
+                Foreground = BrandColors.TextSecondaryBrush,
+                FontSize = 12,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 340,
+                Margin = new Thickness(0, 0, 0, 16)
+            };
+            Button ingestDirectBtn = new Button
+            {
+                Content = "📥 Ingest Droplet / Frame Files",
+                Style = Styles.CreatePrimaryButtonStyle(),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            ingestDirectBtn.Click += (s, e) => BrowseAndIngestFrames();
+            noCamStack.Children.Add(noCamTitle);
+            noCamStack.Children.Add(noCamSub);
+            noCamStack.Children.Add(ingestDirectBtn);
+            _rxNoCameraPlaceholder.Children.Add(noCamStack);
+            vfGrid.Children.Add(_rxNoCameraPlaceholder);
+
             // Signal Badge (Top Left)
             Border badge = new Border
             {
@@ -457,10 +536,10 @@ namespace OpticalTransfer.UI
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(8),
-                Padding = new Thickness(12, 6, 12, 6),
+                Padding = new Thickness(10, 5, 10, 5),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(16)
+                Margin = new Thickness(14)
             };
             StackPanel badgeStack = new StackPanel { Orientation = Orientation.Horizontal };
             Border badgeDot = new Border
@@ -470,11 +549,11 @@ namespace OpticalTransfer.UI
                 CornerRadius = new CornerRadius(4),
                 Background = BrandColors.OpticalGreenBrush,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 8, 0)
+                Margin = new Thickness(0, 0, 6, 0)
             };
             TextBlock badgeLabel = new TextBlock
             {
-                Text = "SCANNING ACTIVE",
+                Text = "SCANNER READY",
                 Foreground = BrandColors.TextPrimaryBrush,
                 FontSize = 11,
                 FontWeight = FontWeights.Bold
@@ -484,92 +563,53 @@ namespace OpticalTransfer.UI
             badge.Child = badgeStack;
             vfGrid.Children.Add(badge);
 
-            // Camera Controls (Top Right)
-            StackPanel camControls = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(16)
-            };
-
-            _rxTorchBtn = new Button
-            {
-                Content = "💡 Torch",
-                Background = BrandColors.SecondaryBgBrush,
-                Foreground = BrandColors.TextSecondaryBrush,
-                BorderBrush = BrandColors.BorderBrush,
-                Padding = new Thickness(10, 6, 10, 6),
-                Margin = new Thickness(0, 0, 8, 0),
-                Cursor = Cursors.Hand
-            };
-            _rxTorchBtn.Click += (s, e) =>
-            {
-                _isTorchOn = !_isTorchOn;
-                _cameraProvider.SetTorch(_isTorchOn);
-                _rxTorchBtn.Foreground = _isTorchOn ? BrandColors.OpticalGreenBrush : BrandColors.TextSecondaryBrush;
-            };
-
+            // Camera Selector (Top Right)
             _rxCameraCombo = new ComboBox
             {
                 Background = BrandColors.SecondaryBgBrush,
                 Foreground = BrandColors.TextPrimaryBrush,
                 BorderBrush = BrandColors.BorderBrush,
-                Width = 180,
-                Height = 28
+                Width = 160,
+                Height = 28,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(14)
             };
-            foreach (var dev in _cameraProvider.GetAvailableDevices())
-            {
-                _rxCameraCombo.Items.Add(dev);
-            }
-            if (_rxCameraCombo.Items.Count > 0) _rxCameraCombo.SelectedIndex = 0;
             _rxCameraCombo.SelectionChanged += (s, e) =>
             {
-                _cameraProvider.SelectDevice(_rxCameraCombo.SelectedIndex);
+                if (_rxCameraCombo.SelectedIndex >= 0)
+                {
+                    _cameraProvider.SelectDevice(_rxCameraCombo.SelectedIndex);
+                }
             };
+            vfGrid.Children.Add(_rxCameraCombo);
 
-            camControls.Children.Add(_rxTorchBtn);
-            camControls.Children.Add(_rxCameraCombo);
-            vfGrid.Children.Add(camControls);
+            _rxViewfinderBorder.Child = vfGrid;
+            Grid.SetRow(_rxViewfinderBorder, 0);
+            leftGrid.Children.Add(_rxViewfinderBorder);
 
-            viewfinder.Child = vfGrid;
-            Grid.SetRow(viewfinder, 0);
-            leftGrid.Children.Add(viewfinder);
-
-            // Bottom Actions
-            StackPanel bottomActions = new StackPanel
+            // Bottom Action Controls (Responsive WrapPanel)
+            WrapPanel bottomActions = new WrapPanel
             {
-                Orientation = Orientation.Horizontal,
-                Margin = new Thickness(0, 16, 0, 0)
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 14, 0, 0)
             };
 
             Button ingestBtn = new Button
             {
                 Content = "📥 Ingest Frame Chunks",
-                Background = BrandColors.SurfaceElevatedBrush,
-                Foreground = BrandColors.TextPrimaryBrush,
-                BorderBrush = BrandColors.BorderBrush,
-                Padding = new Thickness(18, 10, 18, 10),
-                Margin = new Thickness(0, 0, 12, 0),
-                FontWeight = FontWeights.Bold,
-                Cursor = Cursors.Hand
+                Style = Styles.CreateSecondaryButtonStyle(),
+                Margin = new Thickness(0, 0, 10, 6)
             };
             ingestBtn.Click += (s, e) => BrowseAndIngestFrames();
 
             Button resetBtn = new Button
             {
                 Content = "🔄 Reset Session",
-                Background = BrandColors.SurfaceElevatedBrush,
-                Foreground = BrandColors.TextSecondaryBrush,
-                BorderBrush = BrandColors.BorderBrush,
-                Padding = new Thickness(18, 10, 18, 10),
-                Cursor = Cursors.Hand
+                Style = Styles.CreateSecondaryButtonStyle(),
+                Margin = new Thickness(0, 0, 10, 6)
             };
-            resetBtn.Click += (s, e) =>
-            {
-                _rxController.Start();
-                _rxFileCard.Visibility = Visibility.Collapsed;
-            };
+            resetBtn.Click += (s, e) => StartReceiveSession();
 
             bottomActions.Children.Add(ingestBtn);
             bottomActions.Children.Add(resetBtn);
@@ -585,49 +625,47 @@ namespace OpticalTransfer.UI
                 Background = BrandColors.SecondaryBgBrush,
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(1, 0, 0, 0),
-                Padding = new Thickness(24)
+                Padding = new Thickness(18)
             };
 
+            ScrollViewer scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             StackPanel rightStack = new StackPanel();
             TextBlock telemHeader = new TextBlock
             {
                 Text = "REAL-TIME TELEMETRY",
                 Foreground = BrandColors.TextMutedBrush,
-                FontSize = 12,
+                FontSize = 11,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 16)
+                Margin = new Thickness(0, 0, 0, 14)
             };
             rightStack.Children.Add(telemHeader);
 
-            // Metrics Row 1
-            Grid mRow1 = new Grid { Margin = new Thickness(0, 0, 0, 12) };
-            mRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            mRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
-            mRow1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            // Metrics Grid (2x2)
+            Grid mGrid = new Grid { Margin = new Thickness(0, 0, 0, 16) };
+            mGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            mGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(10) });
+            mGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            mGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            mGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+            mGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
 
             var t1 = CreateMetricTile("CAPTURE FPS", out _rxInstantFpsText, "0.0", "Hz", BrandColors.OpticalGreenBrush);
-            Grid.SetColumn(t1, 0);
-            mRow1.Children.Add(t1);
+            Grid.SetRow(t1, 0); Grid.SetColumn(t1, 0);
+            mGrid.Children.Add(t1);
 
             var t2 = CreateMetricTile("GOODPUT", out _rxGoodputText, "0.0", "KB/s", BrandColors.TextEmphasisBrush);
-            Grid.SetColumn(t2, 2);
-            mRow1.Children.Add(t2);
-            rightStack.Children.Add(mRow1);
-
-            // Metrics Row 2
-            Grid mRow2 = new Grid { Margin = new Thickness(0, 0, 0, 24) };
-            mRow2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            mRow2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
-            mRow2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetRow(t2, 0); Grid.SetColumn(t2, 2);
+            mGrid.Children.Add(t2);
 
             var t3 = CreateMetricTile("INGESTED", out _rxIngestedText, "0", "frames", BrandColors.TextPrimaryBrush);
-            Grid.SetColumn(t3, 0);
-            mRow2.Children.Add(t3);
+            Grid.SetRow(t3, 2); Grid.SetColumn(t3, 0);
+            mGrid.Children.Add(t3);
 
             var t4 = CreateMetricTile("SOLVED RANK", out _rxSolvedRankText, "0", "blocks", BrandColors.DarkTransferBrush);
-            Grid.SetColumn(t4, 2);
-            mRow2.Children.Add(t4);
-            rightStack.Children.Add(mRow2);
+            Grid.SetRow(t4, 2); Grid.SetColumn(t4, 2);
+            mGrid.Children.Add(t4);
+
+            rightStack.Children.Add(mGrid);
 
             // Reconstructed File Card
             _rxFileCard = new Border
@@ -635,8 +673,8 @@ namespace OpticalTransfer.UI
                 Background = BrandColors.SurfaceCardBrush,
                 BorderBrush = BrandColors.SuccessBrush,
                 BorderThickness = new Thickness(1.5),
-                CornerRadius = new CornerRadius(12),
-                Padding = new Thickness(16),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(14),
                 Visibility = Visibility.Collapsed
             };
 
@@ -647,40 +685,35 @@ namespace OpticalTransfer.UI
                 Foreground = BrandColors.SuccessBrush,
                 FontSize = 11,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 10)
+                Margin = new Thickness(0, 0, 0, 8)
             };
             _rxFileNameText = new TextBlock
             {
                 Text = "document.pdf",
                 Foreground = BrandColors.TextEmphasisBrush,
-                FontSize = 14,
+                FontSize = 13,
                 FontWeight = FontWeights.Bold
             };
             _rxFileDetailsText = new TextBlock
             {
                 Text = "120 KB • SHA-256 Verified ✓",
                 Foreground = BrandColors.SuccessBrush,
-                FontSize = 12,
-                Margin = new Thickness(0, 4, 0, 8)
+                FontSize = 11,
+                Margin = new Thickness(0, 3, 0, 6)
             };
             _rxFilePathText = new TextBlock
             {
                 Text = "Saved to: Downloads/OpticalTransfer",
                 Foreground = BrandColors.TextMutedBrush,
-                FontSize = 11,
+                FontSize = 10,
                 TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 12)
+                Margin = new Thickness(0, 0, 0, 10)
             };
 
             _rxShowInExplorerBtn = new Button
             {
-                Content = "📁 Show in File Explorer",
-                Background = BrandColors.DarkTransferBrush,
-                Foreground = BrandColors.TextEmphasisBrush,
-                BorderThickness = new Thickness(0),
-                Padding = new Thickness(12, 8, 12, 8),
-                FontWeight = FontWeights.Bold,
-                Cursor = Cursors.Hand
+                Content = "📁 Show in Explorer",
+                Style = Styles.CreatePrimaryButtonStyle()
             };
             _rxShowInExplorerBtn.Click += (s, e) =>
             {
@@ -698,9 +731,39 @@ namespace OpticalTransfer.UI
             _rxFileCard.Child = fileStack;
             rightStack.Children.Add(_rxFileCard);
 
-            rightPanel.Child = rightStack;
+            scroll.Content = rightStack;
+            rightPanel.Child = scroll;
             Grid.SetColumn(rightPanel, 1);
             _receiveView.Children.Add(rightPanel);
+        }
+
+        private void StartReceiveSession()
+        {
+            _rxFileCard.Visibility = Visibility.Collapsed;
+            _rxRing.Progress = 0;
+            _rxRing.SolvedCount = 0;
+            _rxInstantFpsText.Text = "0.0";
+            _rxGoodputText.Text = "0.0";
+            _rxIngestedText.Text = "0";
+            _rxSolvedRankText.Text = "0";
+
+            string[] devices = _cameraProvider.GetAvailableDevices();
+            _rxCameraCombo.Items.Clear();
+            if (devices != null && devices.Length > 0)
+            {
+                foreach (string d in devices) _rxCameraCombo.Items.Add(d);
+                _rxCameraCombo.SelectedIndex = 0;
+                _rxNoCameraPlaceholder.Visibility = Visibility.Collapsed;
+                _rxRing.Visibility = Visibility.Visible;
+                _rxController.Start();
+            }
+            else
+            {
+                _rxCameraCombo.Items.Add("No Camera Found");
+                _rxCameraCombo.SelectedIndex = 0;
+                _rxNoCameraPlaceholder.Visibility = Visibility.Visible;
+                _rxRing.Visibility = Visibility.Collapsed;
+            }
         }
 
         private Border CreateMetricTile(string label, out TextBlock valBlock, string initialVal, string unit, Brush color)
@@ -710,8 +773,8 @@ namespace OpticalTransfer.UI
                 Background = BrandColors.SurfaceCardBrush,
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(14)
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(10)
             };
 
             StackPanel sp = new StackPanel();
@@ -719,25 +782,25 @@ namespace OpticalTransfer.UI
             {
                 Text = label,
                 Foreground = BrandColors.TextMutedBrush,
-                FontSize = 10,
+                FontSize = 9,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 6)
+                Margin = new Thickness(0, 0, 0, 4)
             };
             StackPanel valSp = new StackPanel { Orientation = Orientation.Horizontal };
             valBlock = new TextBlock
             {
                 Text = initialVal,
                 Foreground = color,
-                FontSize = 20,
+                FontSize = 18,
                 FontWeight = FontWeights.Bold
             };
             TextBlock u = new TextBlock
             {
                 Text = " " + unit,
                 Foreground = BrandColors.TextMutedBrush,
-                FontSize = 11,
+                FontSize = 10,
                 VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(4, 0, 0, 2)
+                Margin = new Thickness(3, 0, 0, 2)
             };
 
             valSp.Children.Add(valBlock);
@@ -771,71 +834,115 @@ namespace OpticalTransfer.UI
         {
             _sendView = new Grid();
             _sendView.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            _sendView.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(380) });
+            _sendView.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(300) });
 
-            // Left: QR Projector Canvas
+            // Left: QR Projector Canvas (Responsive Grid)
             Border projectorCard = new Border
             {
                 Background = BrandColors.SurfaceCardBrush,
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(16),
-                Margin = new Thickness(24),
-                Padding = new Thickness(20)
+                CornerRadius = new CornerRadius(14),
+                Margin = new Thickness(18),
+                Padding = new Thickness(16)
             };
 
             Grid pGrid = new Grid();
             pGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             pGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            _txProjector = new QrProjector();
+            // Placeholder Card when idle
+            _txPlaceholderCard = new Border
+            {
+                Background = BrandColors.SecondaryBgBrush,
+                BorderBrush = BrandColors.BorderBrush,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(12),
+                Padding = new Thickness(24),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                MaxWidth = 420
+            };
+            StackPanel phStack = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center };
+            TextBlock phIcon = new TextBlock
+            {
+                Text = "📤",
+                FontSize = 40,
+                TextAlignment = TextAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+            TextBlock phTitle = new TextBlock
+            {
+                Text = "No Active Transmission",
+                Foreground = BrandColors.TextEmphasisBrush,
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                TextAlignment = TextAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 6)
+            };
+            TextBlock phSub = new TextBlock
+            {
+                Text = "Select a file to chunk and stream optical fountain droplets via screen.",
+                Foreground = BrandColors.TextSecondaryBrush,
+                FontSize = 12,
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 16)
+            };
+            Button phBrowseBtn = new Button
+            {
+                Content = "📂 Select File to Transmit",
+                Style = Styles.CreatePrimaryButtonStyle(),
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+            phBrowseBtn.Click += (s, e) => BrowseAndSendFile();
+
+            phStack.Children.Add(phIcon);
+            phStack.Children.Add(phTitle);
+            phStack.Children.Add(phSub);
+            phStack.Children.Add(phBrowseBtn);
+            _txPlaceholderCard.Child = phStack;
+
+            _txProjector = new QrProjector
+            {
+                Visibility = Visibility.Collapsed,
+                MaxWidth = 420,
+                MaxHeight = 420
+            };
+
+            Grid.SetRow(_txPlaceholderCard, 0);
             Grid.SetRow(_txProjector, 0);
+            pGrid.Children.Add(_txPlaceholderCard);
             pGrid.Children.Add(_txProjector);
 
-            StackPanel bottomControls = new StackPanel
+            // Responsive Controls WrapPanel
+            WrapPanel bottomControls = new WrapPanel
             {
-                Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 16, 0, 0)
+                Margin = new Thickness(0, 14, 0, 0)
             };
 
             _txStartBtn = new Button
             {
-                Content = "▶ Start Transmission",
-                Background = BrandColors.DarkTransferBrush,
-                Foreground = BrandColors.TextEmphasisBrush,
-                BorderThickness = new Thickness(0),
-                Padding = new Thickness(18, 10, 18, 10),
-                FontWeight = FontWeights.Bold,
-                Cursor = Cursors.Hand,
-                Margin = new Thickness(0, 0, 12, 0)
+                Content = "▶ Start Stream",
+                Style = Styles.CreatePrimaryButtonStyle(),
+                Margin = new Thickness(0, 0, 8, 6)
             };
             _txStartBtn.Click += (s, e) => StartTransmission();
 
             _txPauseBtn = new Button
             {
                 Content = "⏸ Pause",
-                Background = BrandColors.SurfaceElevatedBrush,
-                Foreground = BrandColors.TextPrimaryBrush,
-                BorderBrush = BrandColors.BorderBrush,
-                Padding = new Thickness(18, 10, 18, 10),
-                Cursor = Cursors.Hand,
-                Margin = new Thickness(0, 0, 12, 0)
+                Style = Styles.CreateSecondaryButtonStyle(),
+                Margin = new Thickness(0, 0, 8, 6)
             };
-            _txPauseBtn.Click += (s, e) =>
-            {
-                _txController.Pause();
-            };
+            _txPauseBtn.Click += (s, e) => _txController.Pause();
 
             _txDetachBtn = new Button
             {
-                Content = "⛶ Detach Fullscreen Projector",
-                Background = BrandColors.SurfaceElevatedBrush,
-                Foreground = BrandColors.OpticalGreenBrush,
-                BorderBrush = BrandColors.BorderBrush,
-                Padding = new Thickness(18, 10, 18, 10),
-                FontWeight = FontWeights.Bold,
-                Cursor = Cursors.Hand
+                Content = "⛶ Detach (F11)",
+                Style = Styles.CreateSecondaryButtonStyle(),
+                Margin = new Thickness(0, 0, 8, 6)
             };
             _txDetachBtn.Click += (s, e) =>
             {
@@ -863,17 +970,18 @@ namespace OpticalTransfer.UI
                 Background = BrandColors.SecondaryBgBrush,
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(1, 0, 0, 0),
-                Padding = new Thickness(24)
+                Padding = new Thickness(18)
             };
 
+            ScrollViewer sideScroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             StackPanel sideStack = new StackPanel();
             TextBlock tuningHeader = new TextBlock
             {
                 Text = "STREAM PARAMETERS & FILE",
                 Foreground = BrandColors.TextMutedBrush,
-                FontSize = 12,
+                FontSize = 11,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 16)
+                Margin = new Thickness(0, 0, 0, 14)
             };
             sideStack.Children.Add(tuningHeader);
 
@@ -883,24 +991,25 @@ namespace OpticalTransfer.UI
                 Background = BrandColors.SurfaceCardBrush,
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(12),
-                Padding = new Thickness(16),
-                Margin = new Thickness(0, 0, 0, 20)
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(14),
+                Margin = new Thickness(0, 0, 0, 16)
             };
             StackPanel fbStack = new StackPanel();
             _txFileNameText = new TextBlock
             {
                 Text = "No file selected",
                 Foreground = BrandColors.TextEmphasisBrush,
-                FontSize = 14,
-                FontWeight = FontWeights.Bold
+                FontSize = 13,
+                FontWeight = FontWeights.Bold,
+                TextTrimming = TextTrimming.CharacterEllipsis
             };
             _txFileSizeText = new TextBlock
             {
-                Text = "Select a file to chunk into fountain packets",
+                Text = "Select a file to chunk into packets",
                 Foreground = BrandColors.TextSecondaryBrush,
-                FontSize = 12,
-                Margin = new Thickness(0, 4, 0, 8)
+                FontSize = 11,
+                Margin = new Thickness(0, 3, 0, 6)
             };
             _txKBlocksText = new TextBlock
             {
@@ -911,14 +1020,9 @@ namespace OpticalTransfer.UI
 
             Button pickBtn = new Button
             {
-                Content = "📂 Select File...",
-                Background = BrandColors.SurfaceElevatedBrush,
-                Foreground = BrandColors.TextPrimaryBrush,
-                BorderBrush = BrandColors.BorderBrush,
-                Padding = new Thickness(12, 8, 12, 8),
-                FontWeight = FontWeights.Bold,
-                Cursor = Cursors.Hand,
-                Margin = new Thickness(0, 12, 0, 0)
+                Content = "📂 Browse File...",
+                Style = Styles.CreateSecondaryButtonStyle(),
+                Margin = new Thickness(0, 10, 0, 0)
             };
             pickBtn.Click += (s, e) => BrowseAndSendFile();
 
@@ -934,18 +1038,18 @@ namespace OpticalTransfer.UI
             {
                 Text = "STREAM CADENCE & SPEED",
                 Foreground = BrandColors.TextMutedBrush,
-                FontSize = 11,
+                FontSize = 10,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 8)
+                Margin = new Thickness(0, 0, 0, 6)
             };
             sideStack.Children.Add(fpsHeader);
 
-            StackPanel fpsValSp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 8) };
+            StackPanel fpsValSp = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 6) };
             _txFpsText = new TextBlock
             {
                 Text = "20 FPS (50 ms / frame)",
                 Foreground = BrandColors.OpticalGreenBrush,
-                FontSize = 13,
+                FontSize = 12,
                 FontWeight = FontWeights.Bold
             };
             fpsValSp.Children.Add(_txFpsText);
@@ -958,7 +1062,7 @@ namespace OpticalTransfer.UI
                 Value = 20,
                 IsSnapToTickEnabled = true,
                 TickFrequency = 5,
-                Margin = new Thickness(0, 0, 0, 16)
+                Margin = new Thickness(0, 0, 0, 12)
             };
             _txFpsSlider.ValueChanged += (s, e) =>
             {
@@ -970,19 +1074,15 @@ namespace OpticalTransfer.UI
             sideStack.Children.Add(_txFpsSlider);
 
             // Preset Buttons
-            StackPanel presets = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 20) };
+            WrapPanel presets = new WrapPanel { Margin = new Thickness(0, 0, 0, 16) };
             int[] presetVals = new int[] { 10, 20, 30, 60 };
             foreach (int p in presetVals)
             {
                 Button pb = new Button
                 {
                     Content = string.Format("{0} FPS", p),
-                    Background = BrandColors.SurfaceElevatedBrush,
-                    Foreground = BrandColors.TextPrimaryBrush,
-                    BorderBrush = BrandColors.BorderBrush,
-                    Padding = new Thickness(10, 4, 10, 4),
-                    Margin = new Thickness(0, 0, 8, 0),
-                    Cursor = Cursors.Hand
+                    Style = Styles.CreateSecondaryButtonStyle(),
+                    Margin = new Thickness(0, 0, 6, 6)
                 };
                 int val = p;
                 pb.Click += (s, e) => _txFpsSlider.Value = val;
@@ -990,7 +1090,8 @@ namespace OpticalTransfer.UI
             }
             sideStack.Children.Add(presets);
 
-            sidePanel.Child = sideStack;
+            sideScroll.Content = sideStack;
+            sidePanel.Child = sideScroll;
             Grid.SetColumn(sidePanel, 1);
             _sendView.Children.Add(sidePanel);
         }
@@ -1020,7 +1121,6 @@ namespace OpticalTransfer.UI
         {
             if (_selectedFileBytes == null || _selectedFileBytes.Length == 0)
             {
-                // Generate demo 60KB sample payload
                 _selectedFileBytes = new byte[60 * 1024];
                 new Random().NextBytes(_selectedFileBytes);
                 _selectedFileName = "demo_airgapped_data.bin";
@@ -1030,6 +1130,8 @@ namespace OpticalTransfer.UI
                 _txKBlocksText.Text = "Source Blocks K: 205 (Symbol Size T: 300B)";
             }
 
+            _txPlaceholderCard.Visibility = Visibility.Collapsed;
+            _txProjector.Visibility = Visibility.Visible;
             _txController.Start(_selectedFileBytes, _selectedFileName, (float)_txFpsSlider.Value);
         }
         #endregion
@@ -1037,10 +1139,10 @@ namespace OpticalTransfer.UI
         #region History View
         private void BuildHistoryView()
         {
-            _historyView = new Grid { Margin = new Thickness(36) };
+            _historyView = new Grid { Margin = new Thickness(24) };
             StackPanel stack = new StackPanel();
 
-            Grid topGrid = new Grid { Margin = new Thickness(0, 0, 0, 20) };
+            Grid topGrid = new Grid { Margin = new Thickness(0, 0, 0, 16) };
             topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             topGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
@@ -1048,7 +1150,7 @@ namespace OpticalTransfer.UI
             {
                 Text = "TRANSFERS & DOWNLOADS",
                 Foreground = BrandColors.TextMutedBrush,
-                FontSize = 12,
+                FontSize = 11,
                 FontWeight = FontWeights.Bold
             };
             Grid.SetColumn(histLabel, 0);
@@ -1056,13 +1158,8 @@ namespace OpticalTransfer.UI
 
             Button openFolderBtn = new Button
             {
-                Content = "📁 Open OpticalTransfer Folder",
-                Background = BrandColors.SurfaceElevatedBrush,
-                Foreground = BrandColors.TextPrimaryBrush,
-                BorderBrush = BrandColors.BorderBrush,
-                Padding = new Thickness(14, 8, 14, 8),
-                FontWeight = FontWeights.Bold,
-                Cursor = Cursors.Hand
+                Content = "📁 Open Downloads Folder",
+                Style = Styles.CreateSecondaryButtonStyle()
             };
             openFolderBtn.Click += (s, e) =>
             {
@@ -1080,9 +1177,9 @@ namespace OpticalTransfer.UI
                 Background = BrandColors.SurfaceCardBrush,
                 BorderBrush = BrandColors.BorderBrush,
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(14),
-                Padding = new Thickness(32),
-                Height = 400
+                CornerRadius = new CornerRadius(12),
+                Padding = new Thickness(24),
+                Height = 360
             };
 
             TextBlock desc = new TextBlock
@@ -1106,7 +1203,7 @@ namespace OpticalTransfer.UI
         {
             Dispatcher.Invoke(new Action(() =>
             {
-                // Update UI state
+                // UI state sync
             }));
         }
 
