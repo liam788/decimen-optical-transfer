@@ -41,7 +41,7 @@ jobs:
           files: |
             released/decimen-sender.html
             released/decimen-receiver.html
-            released/decimen-windows.zip
+
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

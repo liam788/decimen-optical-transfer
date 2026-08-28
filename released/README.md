@@ -1,53 +1,26 @@
-# Decimen Optical Transfer — Release Binaries
+# Optical Transfer — Official Release Downloads
 
-This folder contains pre-built distribution files for **Decimen Optical Transfer**.
+All official pre-built distributions for **Optical Transfer** across Windows, Android, Web, and macOS.
 
 ---
 
-## 📦 Included Standalone Web Releases
+## 🚀 Direct Downloads Table
 
-| File | Description | Needs Server? | Offline? |
+| Platform | Deliverable / Package | Status & Download Link | Notes |
 |---|---|---|---|
-| **`decimen-sender.html`** (57 KB) | Single-file optical sender. Generates screen stream of fountain QR frames. | No (runs from `file://` or any browser) | Always |
-| **`decimen-receiver.html`** (1.3 MB) | Single-file optical receiver. Carries inlined ZXing WASM engine & web worker. | Serve over HTTP/HTTPS or local host | Always |
+| 🪟 **Windows (64-bit)** | **`decimen-windows.zip`** | [📥 Download Windows App](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-windows.zip) | **100% In-App Receiver & Sender** (No browser popups). Extract and run `flutter_optical_transfer.exe`. |
+| 🌐 **Web Sender (Offline)** | **`decimen-sender.html`** | [📥 Download Standalone Sender](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-sender.html) | Single-file zero-install sender. Runs directly in any browser offline. |
+| 🌐 **Web Receiver (Offline)** | **`decimen-receiver.html`** | [📥 Download Standalone Receiver](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-receiver.html) | Single-file optical receiver carrying inlined ZXing WASM engine. |
+| 🤖 **Android (APK)** | **`app-release.apk`** | [📥 Download Android APK](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/app-release.apk) | Direct APK sideload for Android 5.0+. Includes native APK extractor. |
+| 🖥️ **macOS (Intel/ARM)** | **`decimen-macos.zip`** | [📥 Download macOS App](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-macos.zip) | Unsigned bundle. Right-click $\rightarrow$ Open to bypass Gatekeeper. |
+| 🍎 **iOS** | **`decimen-ios.zip`** | [📥 Download iOS Package](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-ios.zip) | Unsigned package. Install via AltStore or Sideloadly. |
 
 ---
 
-## 📱 Cross-Platform Native Apps (Android APK, Windows EXE, macOS APP)
+## 🪟 Windows Desktop Quickstart
 
-The repository includes a complete Flutter cross-platform application in [`flutter_optical_transfer/`](../flutter_optical_transfer/).
+1. Download [`decimen-windows.zip`](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-windows.zip).
+2. Right-click and **Extract All**.
+3. Launch `flutter_optical_transfer.exe`.
+4. All sending and receiving actions occur **100% natively inside the desktop window** with zero network requirement.
 
-### Building Native Binaries via GitHub Actions (Automated)
-Whenever a version tag (e.g. `v1.0.0`) is pushed to GitHub:
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-The automated GitHub Actions workflow (`.github/workflows/release-flutter.yml`) will build:
-1. **`app-release.apk`** — Android APK (with native installed app extractor)
-2. **`flutter_optical_transfer_windows.zip`** — Windows PC Desktop Executable
-3. **`flutter_optical_transfer_macos.zip`** — macOS Desktop Bundle
-
-All compiled binaries are automatically attached to the GitHub Releases page!
-
----
-
-## 🛠️ Building Native Binaries Locally
-
-### Build Android APK:
-```bash
-cd flutter_optical_transfer
-flutter build apk --release
-```
-
-### Build Windows EXE:
-```bash
-cd flutter_optical_transfer
-flutter build windows --release
-```
-
-### Build macOS App:
-```bash
-cd flutter_optical_transfer
-flutter build macos --release
-```

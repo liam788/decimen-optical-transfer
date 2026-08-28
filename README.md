@@ -1,4 +1,4 @@
-﻿# Universal Optical Transfer (Fountain-Coded Visual Data Stream)
+# Universal Optical Transfer (Fountain-Coded Visual Data Stream)
 
 [![C++17](https://img.shields.io/badge/C%2B%2B-17%2F20-blue.svg)](native/)
 [![Architecture](https://img.shields.io/badge/Architecture-4--Layer-green.svg)](docs/architecture/)
@@ -60,6 +60,20 @@ Transfers files between devices (Android, iOS, Windows, macOS, Linux) with **zer
 5. **Universal C-ABI Interoperability:** Clean `extern "C"` surface binding into Swift (iOS/macOS), Kotlin/JNI (Android), and C# P/Invoke (Windows).
 
 ---
+
+## 📥 Direct Downloads
+
+| Platform | Package | Download Link | Notes |
+|---|---|---|---|
+| 🪟 **Windows App** | `decimen-windows.zip` | [📥 Download Windows App](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-windows.zip) | 100% In-App Receiver (Extract and run `.exe`) |
+| 🌐 **Web Sender** | `decimen-sender.html` | [📥 Download Web Sender](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-sender.html) | Single-file zero-install offline HTML |
+| 🌐 **Web Receiver** | `decimen-receiver.html` | [📥 Download Web Receiver](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-receiver.html) | Inlined ZXing WASM scanner |
+| 🤖 **Android** | `app-release.apk` | [📥 Download Android APK](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/app-release.apk) | Direct APK sideload for Android 5.0+ |
+
+See the full distribution catalog in [`released/README.md`](released/README.md).
+
+---
+
 
 ## 🛠️ Quick Start & Verification
 
