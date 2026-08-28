@@ -25,24 +25,29 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           body: |
-            ## Optical Transfer — Universal Cross-Platform Release
+            ## Optical Transfer v2.0.0 — Universal Cross-Platform Release
 
-            Zero-network optical file transfer via fountain-coded light streams.
+            Zero-network, air-gapped optical file transfer using fountain-coded visual light streams (screens & cameras).
 
-            ### Downloads
+            ### 🚀 What's New in v2.0.0
+            - **Pure Native Windows Application (C# / WPF):** Standalone `OpticalTransfer.exe` with zero external dependencies, 4-layer architecture, optical transfer ring, viewfinder HUD, and live telemetry.
+            - **4-Layer System Architecture:** Systematic Fountain Codec (Soliton PRNG, systematic source blocks, repair droplets, peeling solver), DCF2 protocol container with SHA-256 integrity validation.
+            - **1-Ahead Frame Pre-generation & VSync Cadence Gating:** 5 to 60 FPS streaming without UI stutter.
+            - **2-Slot Atomic Dropping Queue:** High-framerate camera capture with $<0.3\text{ ms}$ buffer copies.
+            - **Official Brand Design System:** High-contrast dark theme (#0A0A0A Optical Black, #181B18 Cards, #98B878 Optical Green accent).
+
+            ### 📥 Direct Downloads
             | Platform | File | Notes |
             |---|---|---|
-            | 🌐 Web (Sender) | `decimen-sender.html` | Open in any browser, no install |
-            | 🌐 Web (Receiver) | `decimen-receiver.html` | Open in any browser, no install |
+            | 🪟 Windows | `decimen-windows.zip` | Pure Native Windows App (Extract and run `OpticalTransfer.exe`) |
+            | 🌐 Web (Sender) | `decimen-sender.html` | Open in any browser offline, no install |
+            | 🌐 Web (Receiver) | `decimen-receiver.html` | Open in any browser offline, inlined ZXing scanner |
             | 🤖 Android | `app-release.apk` | Sideload on Android 5.0+ |
-            | 🪟 Windows | `decimen-windows.zip` | Extract and run `.exe` (100% In-App Standalone) |
             | 🍎 iOS | `decimen-ios.zip` | Unsigned — install via AltStore/Sideloadly |
             | 🖥️ macOS | `decimen-macos.zip` | Unsigned — right-click → Open to bypass Gatekeeper |
           files: |
             released/decimen-sender.html
             released/decimen-receiver.html
-
-
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -78,54 +83,29 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ─────────────────────────────────────────────
-  # JOB 3: Build Windows EXE
+  # JOB 3: Build Native Windows Executable & Bundle
   # ─────────────────────────────────────────────
   build-windows:
-    name: Build Windows EXE
+    name: Build Native Windows App
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-          cache: true
-
-      - name: Enable Windows desktop, create platform files & swap pubspec/main
-        working-directory: flutter_optical_transfer
+      - name: Compile Native C# / WPF Windows Application
         shell: pwsh
         run: |
-          flutter config --enable-windows-desktop
-          flutter create --platforms=windows .
-          Copy-Item pubspec.windows.yaml pubspec.yaml -Force
-          Copy-Item lib/main_windows.dart lib/main.dart -Force
-          flutter pub get
-
-      - name: Build Windows Executable
-        working-directory: flutter_optical_transfer
-        run: flutter build windows --release --target=lib/main.dart
-
-      - name: Package Windows ZIP
-        working-directory: flutter_optical_transfer
-        shell: pwsh
-        run: |
-          $newPath = "build/windows/x64/runner/Release"
-          $oldPath = "build/windows/runner/Release"
-          if (Test-Path $newPath) {
-            Compress-Archive -Path "$newPath/*" -DestinationPath "decimen-windows.zip"
-          } elseif (Test-Path $oldPath) {
-            Compress-Archive -Path "$oldPath/*" -DestinationPath "decimen-windows.zip"
-          } else {
-            Write-Error "Could not find Windows build output"
+          powershell -ExecutionPolicy Bypass -File windows/build.ps1
+          if (-not (Test-Path "windows/bin/OpticalTransfer.exe")) {
+            Write-Error "OpticalTransfer.exe was not created"
             exit 1
           }
+          Compress-Archive -Path "windows/bin/OpticalTransfer.exe" -DestinationPath "decimen-windows.zip" -Force
 
       - name: Upload Windows ZIP
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          files: flutter_optical_transfer/decimen-windows.zip
+          files: decimen-windows.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

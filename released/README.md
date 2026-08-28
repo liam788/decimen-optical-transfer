@@ -8,7 +8,7 @@ All official pre-built distributions for **Optical Transfer** across Windows, An
 
 | Platform | Deliverable / Package | Status & Download Link | Notes |
 |---|---|---|---|
-| 🪟 **Windows (64-bit)** | **`decimen-windows.zip`** | [📥 Download Windows App](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-windows.zip) | **100% In-App Receiver & Sender** (No browser popups). Extract and run `flutter_optical_transfer.exe`. |
+| 🪟 **Windows (Pure Native C#/WPF)** | **`decimen-windows.zip`** | [📥 Download Windows App](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-windows.zip) | **100% Native In-App Receiver & Projector** (Zero browser popups). Extract and run `OpticalTransfer.exe`. |
 | 🌐 **Web Sender (Offline)** | **`decimen-sender.html`** | [📥 Download Standalone Sender](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-sender.html) | Single-file zero-install sender. Runs directly in any browser offline. |
 | 🌐 **Web Receiver (Offline)** | **`decimen-receiver.html`** | [📥 Download Standalone Receiver](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-receiver.html) | Single-file optical receiver carrying inlined ZXing WASM engine. |
 | 🤖 **Android (APK)** | **`app-release.apk`** | [📥 Download Android APK](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/app-release.apk) | Direct APK sideload for Android 5.0+. Includes native APK extractor. |
@@ -21,6 +21,6 @@ All official pre-built distributions for **Optical Transfer** across Windows, An
 
 1. Download [`decimen-windows.zip`](https://github.com/liam788/decimen-optical-transfer/releases/latest/download/decimen-windows.zip).
 2. Right-click and **Extract All**.
-3. Launch `flutter_optical_transfer.exe`.
-4. All sending and receiving actions occur **100% natively inside the desktop window** with zero network requirement.
+3. Launch `OpticalTransfer.exe` (or `windows/bin/OpticalTransfer.exe`).
+4. All sending and receiving actions occur **100% natively inside the desktop workstation window** with zero network requirement.
 

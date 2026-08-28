@@ -41,13 +41,14 @@ Transfers files between devices (Android, iOS, Windows, macOS, Linux) with **zer
 
 | Directory | Purpose & Contents |
 |---|---|
+| [`windows/`](windows/) | **Native Windows Desktop Application (C# / WPF):** Pure standalone Windows client with the 4-layer architecture, official brand design system, optical ring, viewfinder HUD, in-app receiver, and full-screen visual projector (`OpticalTransfer.exe`). |
 | [`native/`](native/) | **Universal C++17 library:** Core algorithms (Fountain codec, DCF2 protocol, QR engine), HAL interfaces, State Layer session controllers, and C-ABI export bindings (`optical_transfer.dll` / `.so` / `.dylib`). |
 | [`docs/architecture/`](docs/architecture/) | **Master Architecture Specifications (Steps 1–5):** Complete rationale, layer designs, platform mappings, HAL contracts, and state models. |
 | [`scripts/`](scripts/) | **Verification & Automation Tools:** Headless simulation test suite (`verify.py`) testing Soliton math, erasure tolerance, VSync gating, and DCF2 checksums. |
 | [`flutter_optical_transfer/`](flutter_optical_transfer/) | Universal cross-platform Flutter application (Android, Windows, macOS, iOS). |
 | [`android/`](android/) | Standalone native Android implementation in Kotlin & Jetpack Compose. |
 | [`decimen-optical-transfer/`](decimen-optical-transfer/) | Core Web TypeScript & WebAssembly reference implementation. |
-| [`released/`](released/) | Prebuilt standalone single-file HTML distributions (`decimen-sender.html` and `decimen-receiver.html`). |
+| [`released/`](released/) | Prebuilt standalone distributions (Native Windows `OpticalTransfer.exe`, `decimen-sender.html`, `decimen-receiver.html`). |
 
 ---
 
