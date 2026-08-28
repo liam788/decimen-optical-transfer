@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import '../theme/app_theme.dart';
 import 'send_screen.dart';
 import 'receive_screen_desktop.dart';
+
 
 /// Professional Windows Desktop Workstation with Brand Design System
 class HomeScreenDesktop extends StatefulWidget {
@@ -430,8 +432,7 @@ class _HomeScreenDesktopState extends State<HomeScreenDesktop> {
               ),
               child: const Center(
                 child: Text(
-                  'Received files are automatically saved to your Downloads/OpticalTransfer directory.
-Zero cloud servers or network trace.',
+                  'Received files are automatically saved to your Downloads/OpticalTransfer directory.\nZero cloud servers or network trace.',
                   style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.6),
                   textAlign: TextAlign.center,
                 ),
@@ -443,3 +444,4 @@ Zero cloud servers or network trace.',
     );
   }
 }
+
